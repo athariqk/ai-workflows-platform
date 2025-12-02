@@ -1,0 +1,78 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model agent {
+  id            String     @id(map: "agent_pk") @db.Uuid
+  name          String
+  model         model_type
+  system_prompt String?
+  temperature   Float?     @db.Real
+}
+
+model run_log {
+  id          String                 @id(map: "run_log_pk") @db.Uuid
+  workflow_id String?                @db.Uuid
+  status      execution_status_type?
+  started_at  DateTime?              @db.Timestamp(6)
+  finished_at DateTime?              @db.Timestamp(6)
+  workflow    workflow?              @relation(fields: [workflow_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "run_log_workflow_fk")
+  step_log    step_log[]
+}
+
+model step_log {
+  id            String                 @id(map: "step_log_pk") @db.Uuid
+  run_id        String?                @db.Uuid
+  node_id       String?                @db.Uuid
+  started_at    DateTime?              @db.Timestamp(6)
+  finished_at   DateTime?              @db.Timestamp(6)
+  status        execution_status_type?
+  run_log       run_log?               @relation(fields: [run_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "step_log_run_log_fk")
+  workflow_node workflow_node?         @relation(fields: [node_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "step_log_workflow_node_fk")
+}
+
+model workflow {
+  id            String          @id(map: "workflow_pk") @db.Uuid
+  name          String
+  description   String?
+  run_log       run_log[]
+  workflow_edge workflow_edge[]
+  workflow_node workflow_node?
+}
+
+model workflow_edge {
+  id                                                        String         @id(map: "workflow_edge_pk") @db.Uuid
+  workflow_id                                               String         @db.Uuid
+  source_node_id                                            String?        @db.Uuid
+  target_node_id                                            String?        @db.Uuid
+  workflow                                                  workflow       @relation(fields: [workflow_id], references: [id], onDelete: Cascade, map: "workflow_edge_workflow_fk")
+  workflow_node_workflow_edge_source_node_idToworkflow_node workflow_node? @relation("workflow_edge_source_node_idToworkflow_node", fields: [source_node_id], references: [id], onDelete: Cascade, map: "workflow_edge_workflow_node_fk")
+  workflow_node_workflow_edge_target_node_idToworkflow_node workflow_node? @relation("workflow_edge_target_node_idToworkflow_node", fields: [target_node_id], references: [id], onDelete: Cascade, map: "workflow_edge_workflow_node_fk_1")
+}
+
+model workflow_node {
+  id                                                        String          @id(map: "node_pk") @db.Uuid
+  workflow_id                                               String?         @db.Uuid
+  step_log                                                  step_log[]
+  workflow_edge_workflow_edge_source_node_idToworkflow_node workflow_edge[] @relation("workflow_edge_source_node_idToworkflow_node")
+  workflow_edge_workflow_edge_target_node_idToworkflow_node workflow_edge[] @relation("workflow_edge_target_node_idToworkflow_node")
+  workflow                                                  workflow        @relation(fields: [id], references: [id], onDelete: Cascade, map: "node_workflow_fk")
+}
+
+enum execution_status_type {
+  pending
+  running
+  completed
+  failed
+}
+
+enum model_type {
+  gemini
+  chatgpt
+  claude
+}

@@ -1,0 +1,42 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "tasks": {
+    "build": {
+      "dependsOn": [
+        "^build"
+      ],
+      "outputs": [
+        "dist/**"
+      ]
+    },
+    "lint": {
+      "dependsOn": [
+        "^build"
+      ]
+    },
+    "lint:fix": {},
+    "test": {
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/vitest.config.ts"
+      ],
+      "dependsOn": [
+        "transit",
+        "@repo/vitest-config#build"
+      ],
+      "outputs": [
+        "coverage.json",
+        "junit.xml"
+      ]
+    },
+    "dev": {
+      "persistent": true,
+      "cache": false
+    },
+    "transit": {
+      "dependsOn": [
+        "^transit"
+      ]
+    }
+  }
+}

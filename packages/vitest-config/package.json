@@ -1,0 +1,31 @@
+{
+  "name": "@repo/vitest-config",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js",
+    "./base": "./dist/configs/base-config.js",
+    "./ui": "./dist/configs/ui-config.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "collect-json-reports": "node dist/scripts/collect-json-outputs.js",
+    "merge-json-reports": "nyc merge coverage/raw coverage/merged/merged-coverage.json",
+    "report": "nyc report -t coverage/merged --report-dir coverage/report --reporter=html --exclude-after-remap false",
+    "view-report": "open-cli coverage/report/index.html"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@repo/typescript-config": "*",
+    "@vitest/coverage-istanbul": "^4.0.14",
+    "eslint": "^9.39.1",
+    "glob": "latest",
+    "nyc": "^17.1.0",
+    "open-cli": "^8.0.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.48.0",
+    "vitest": "^4.0.14"
+  }
+}

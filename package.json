@@ -1,0 +1,22 @@
+{
+    "name": "awp-app",
+    "description": "A mini AI agent workflow platform project",
+    "packageManager": "npm@11.6.2",
+    "scripts": {
+        "dev:be": "turbo run dev --filter=awp-backend",
+        "dev:fe": "turbo run dev --filter=awp-frontend",
+        "lint": "turbo run lint",
+        "lint:fix": "turbo run lint:fix",
+        "test": "turbo run test",
+        "view-report": "turbo run view-report"
+    },
+    "workspaces": [
+        "packages/*"
+    ],
+    "devDependencies": {
+        "@repo/vitest-config": "*",
+        "@vitest/ui": "^4.0.14",
+        "turbo": "^2.6.1",
+        "vitest": "^4.0.14"
+    }
+}
