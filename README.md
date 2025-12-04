@@ -10,7 +10,7 @@ A visual workflow builder for creating and executing AI agent workflows as direc
 - **Backend**: Express.js + Prisma + PostgreSQL + Redis
 - **Frontend**: React + TanStack Router + React Flow + Material-UI
 
-Explanations/documentations of the design decisions I took for this project (include ERD) can be viewed in [this section](docs\DESIGN_DECISIONS.md).
+Explanations/documentations of the design decisions I took for this project (include ERD) can be viewed in [this section](docs/DESIGN_DECISIONS.md).
 
 ## Quick Start
 
