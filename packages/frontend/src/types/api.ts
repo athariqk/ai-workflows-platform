@@ -1,6 +1,6 @@
 // Backend API types matching Prisma schema
 
-export type ModelType = 'gemini' | 'chatgpt' | 'claude';
+export type ModelType = 'gemini_2_5_flash' | 'gpt_5_mini' | 'claude_sonnet_4_5';
 
 export type ExecutionStatusType = 'pending' | 'running' | 'completed' | 'failed';
 

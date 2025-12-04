@@ -25,7 +25,7 @@ const nodeTypeRegistry: Record<WorkflowNodeType, NodeTypeConfig> = {
           agent: config?.agent || {
             id: "unknown",
             name: "Unknown Agent",
-            model: "gemini" as const,
+            model: "gemini_2_5_flash" as const,
             system_prompt: null,
             temperature: null,
           },

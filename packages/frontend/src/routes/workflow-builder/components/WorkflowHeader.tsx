@@ -7,6 +7,7 @@ interface WorkflowHeaderProps {
   error: string | null;
   currentRun: WorkflowRun | null;
   workflowStatus: WorkflowStatus;
+  workflowError: string | null;
 }
 
 export function WorkflowHeader({
@@ -15,6 +16,7 @@ export function WorkflowHeader({
   error,
   currentRun,
   workflowStatus,
+  workflowError,
 }: WorkflowHeaderProps) {
   const getStatusIndicator = () => {
     if (!currentRun)
@@ -48,7 +50,7 @@ export function WorkflowHeader({
   };
 
   return (
-    <header className="bg-white border-b border-slate-200 px-8 min-h-[68px] flex justify-between items-center shrink-0">
+    <header className="bg-white border-b border-slate-200 px-8 min-h-[68px] flex flex-col justify-center shrink-0 py-4">
       {loading ? (
         <div className="flex items-center gap-2">
           <Loader2 size={20} className="animate-spin text-indigo-600" />
@@ -59,12 +61,19 @@ export function WorkflowHeader({
           <strong>Error:</strong> {error}
         </div>
       ) : workflow ? (
-        <div className="flex flex-row items-center gap-4">
-          <h2 className="text-2xl font-medium text-slate-800">
-            {workflow.name}
-          </h2>
-          {getStatusIndicator()}
-        </div>
+        <>
+          <div className="flex flex-row items-center gap-4">
+            <h2 className="text-2xl font-medium text-slate-800">
+              {workflow.name}
+            </h2>
+            {getStatusIndicator()}
+          </div>
+          {workflowError && workflowStatus === "failed" && (
+            <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+              <strong className="font-semibold">Workflow Error:</strong> {workflowError}
+            </div>
+          )}
+        </>
       ) : (
         <div>
           <h2 className="text-2xl font-medium text-slate-800">

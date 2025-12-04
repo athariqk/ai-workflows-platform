@@ -5,12 +5,13 @@
  *    ModelType:
  *      type: string
  *      enum:
- *        - gemini
- *        - chatgpt
- *        - claude
+ *        - gemini_2_5_flash
+ *        - gpt_5_mini
+ *        - claude_sonnet_4_5
  *    WorkflowNodeType:
  *      type: string
  *      enum:
+ *        - text_input
  *        - agent
  *  responses:
  *    NotFound:

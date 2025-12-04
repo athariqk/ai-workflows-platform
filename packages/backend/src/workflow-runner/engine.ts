@@ -151,7 +151,8 @@ async function executeWorkflow(
 
       job.reportProgress({
         currentNodeId: currentNode.id,
-        status: "failed"
+        status: "failed",
+        error: (error as Error).message
       });
 
       throw error;
@@ -219,7 +220,8 @@ export async function executeWorkflowJob(
 
     job.reportProgress({
       currentNodeId: null,
-      status: "failed"
+      status: "failed",
+      error: (error as Error).message
     });
 
     return { success: false, runId, error: (error as Error).message };

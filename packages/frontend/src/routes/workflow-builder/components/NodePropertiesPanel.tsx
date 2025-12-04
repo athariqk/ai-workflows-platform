@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X, FileText, Edit3, Text, Save } from "lucide-react";
+import { X, FileText, Edit3, Save, XCircle, Type } from "lucide-react";
 import type { Node } from "@xyflow/react";
 
 interface NodePropertiesPanelProps {
@@ -17,6 +17,7 @@ export default function NodePropertiesPanel({
 
   const output = (selectedNode.data as { output?: string }).output;
   const status = (selectedNode.data as { status?: string }).status;
+  const error = (selectedNode.data as { error?: string }).error;
   const isTextInputNode = selectedNode.type === "textInputNode";
 
   const [isEditing, setIsEditing] = useState(false);
@@ -74,7 +75,7 @@ export default function NodePropertiesPanel({
           <div>
             <div className="flex items-center justify-between mb-2">
               <h4 className="text-xs font-medium text-slate-500 uppercase flex items-center gap-1">
-                <Text size={12} />
+                <Type size={12} />
                 Content
               </h4>
               {isEditing ? (
@@ -105,6 +106,21 @@ export default function NodePropertiesPanel({
               disabled={!isEditing}
               className="w-full p-3 bg-white rounded-lg border border-slate-300 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 min-h-[100px] resize-y"
             />
+          </div>
+        )}
+
+        {/* Error */}
+        {error && status === "failed" && (
+          <div>
+            <h4 className="text-xs font-medium text-red-500 uppercase mb-2 flex items-center gap-1">
+              <XCircle size={12} />
+              Error
+            </h4>
+            <div className="p-3 bg-red-50 rounded-lg border border-red-200">
+              <pre className="text-xs text-red-700 whitespace-pre-wrap font-mono">
+                {error}
+              </pre>
+            </div>
           </div>
         )}
 

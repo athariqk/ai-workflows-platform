@@ -67,10 +67,12 @@ router.post("/run", async (req, res, next) => {
     res.setHeader('Connection', 'keep-alive');
 
     try {
-        const { workflow_id } = req.body;
-
+        const { workflow_id, job_id } = req.body;
         if (!workflow_id) {
             throw BadRequest("workflow_id is required");
+        }
+        if (!job_id) {
+            throw BadRequest("job_id is required");
         }
 
         const workflow = await prisma.workflow.findUnique({
@@ -96,6 +98,7 @@ router.post("/run", async (req, res, next) => {
         };
 
         const job = await workflowQueue.createJob(jobData)
+            .setId(job_id)
             .retries(3)
             .backoff('fixed', 8000)
             .save();
@@ -103,7 +106,7 @@ router.post("/run", async (req, res, next) => {
         res.status(201).json({
             run_id: runId,
             job_id: job.id,
-            status: "pending",
+            status: job.status,
         });
     } catch (err) {
         next(err);
@@ -115,18 +118,16 @@ router.get("/run-progress", async (req, res, next) => {
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
 
-    const job_id = req.query["job_id"];
-
     try {
-        const job = await workflowQueue.getJob(job_id as string);
-        if (!job) {
-            throw NotFound("Job not found");
-        }
-        job.on("progress", (progress) => {
-            res.write("data: " + JSON.stringify(progress) + "\n\n");
+        workflowQueue.on("job progress", (jobId, progress) => {
+            const data = {
+                jobId: jobId,
+                progress: progress
+            }
+            res.write("data: " + JSON.stringify(data) + "\n\n");
         });
     } catch (err) {
-        next(err)
+        next(err);
     }
 })
 

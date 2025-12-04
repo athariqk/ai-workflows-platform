@@ -1,118 +1,165 @@
-# AI Workflows Platform - Copilot Instructions
+# AI Workflow Platform - Copilot Instructions
 
 ## Architecture Overview
 
-This is a **Turborepo monorepo** for a mini AI agent workflow platform with:
-- **Backend** (`packages/backend`): Express REST API with Prisma ORM + PostgreSQL
-- **Frontend** (`packages/frontend`): React + TanStack Router + ReactFlow visual workflow editor
-- **Shared configs** (`packages/typescript-config`, `packages/vitest-config`)
+This is a **TurboRepo monorepo** with backend (Express + Prisma) and frontend (React + TanStack Router) packages. The platform enables creating AI agent workflows as directed acyclic graphs that execute asynchronously via Redis queues.
 
-The platform allows users to create workflows composed of AI agent nodes (Gemini, ChatGPT, Claude) connected via edges, visualize them in a drag-and-drop builder, and execute them via a runner system.
+### Core Components
 
-## Development Workflow
-
-### Running the App
-```bash
-npm run dev           # Run both frontend & backend
-npm run dev:fe        # Frontend only (port 4000)
-npm run dev:be        # Backend only (port 3000)
-```
-
-### Testing Strategy
-- **Backend has TWO test types**: unit tests (`*.unit.test.ts`) and integration tests (`*.int.test.ts`)
-- Integration tests use a **dockerized Postgres** (port 5433) managed by `scripts/run-int-tests.js`
-  - The script: starts docker-compose, waits for DB, applies schema via `prisma db push`, runs tests, tears down
-  - Never run `prisma migrate` manually for tests - the script handles everything
-- Run tests: `npm run test` (from root or package directory)
-- View coverage report: `npm run view-report`
-
-### Database & Prisma
-- Schema: `packages/backend/prisma/schema.prisma`
-- Generated client: `packages/backend/src/generated/prisma/` (custom output path)
-- Prisma adapter uses `@prisma/adapter-pg` with direct PostgreSQL connection
-- Access via singleton: `import { prisma } from "@/lib/prisma"`
+- **Backend** (`packages/backend`): REST API with workflow execution engine
+- **Frontend** (`packages/frontend`): React Flow-based visual workflow builder
+- **Database**: PostgreSQL with Prisma ORM (custom output to `src/generated/prisma`)
+- **Queue System**: Redis with bee-queue for async workflow execution
+- **Testing**: Vitest with separate unit/integration projects
 
 ## Critical Patterns
 
-### UUIDs: Use UUIDv7 for All IDs
-All database IDs use **UUIDv7** (time-sortable):
+### Path Imports
+Backend uses `@/` alias for `./src/*` (configured in `tsconfig.json`). Always use:
 ```typescript
+import { prisma } from "@/lib/prisma"
 import uuidv7 from "@/lib/uuid-v7"
-const id = uuidv7() // Returns crypto.UUID type
 ```
-Never use `uuid` package or Prisma's `@default(uuid())` - always call `uuidv7()` explicitly in route handlers.
 
-### Import Aliases
-Both packages use `@/*` for absolute imports:
-- Backend: `@/lib/prisma`, `@/api/v1/agents`
-- Frontend: `@/lib/api`, `@/components/AgentNode`
-
-### API Structure
-- All routes require `?api_key=<key>` query parameter (middleware in `api/route.ts`)
-- OpenAPI/Swagger docs generated from JSDoc comments in `src/api/v1/*.ts`
-- View docs at: `http://localhost:3000/api-docs`
-- Routes follow RESTful pattern: GET, POST, PUT, DELETE with UUID params
-
-### Frontend API Client
-Centralized in `packages/frontend/src/lib/api.ts`:
+### UUID Generation
+Use custom `uuidv7()` from `@/lib/uuid-v7` for time-sortable IDs:
 ```typescript
-import { api } from '@/lib/api'
-const agents = await api.getAgents()
+const runId = uuidv7(); // Returns crypto.UUID type
 ```
-Uses environment variables: `VITE_API_BASE_URL`, `VITE_API_KEY`
 
-### Workflow Builder
-- Uses **ReactFlow** (`@xyflow/react`) for visual node editor
-- Custom node type: `agentNode` (see `components/AgentNode.tsx`)
-- Agent nodes dragged from sidebar, dropped onto canvas with drag-and-drop
-- State managed in `workflow-builder/index.tsx` with `screenToFlowPosition` for coordinate conversion
+### Error Handling
+Use factory functions from `@/lib/http-error` for consistent HTTP errors:
+```typescript
+throw BadRequest("workflow_id is required");
+throw NotFound("Workflow not found");
+throw Forbidden("api key required");
+```
 
-### TanStack Router (File-Based Routing)
-- Routes in `src/routes/` auto-generate types via `routeTree.gen.ts`
-- Layout in `__root.tsx`, pages use `createFileRoute()`
-- Search params: use `validateSearch` with TypeScript types (see workflow-builder route)
+Express error handler in `app.ts` catches `HttpError` instances and returns proper status codes.
 
-## Code Quality
+### Prisma Configuration
+- Schema in `packages/backend/prisma/schema.prisma`
+- Generated client outputs to `src/generated/prisma` (not default `node_modules`)
+- Uses PostgreSQL adapter: `@prisma/adapter-pg` with connection pooling
+- After schema changes: `npx prisma generate` from backend directory
 
-- **ESLint**: Uses `@eslint/js` + `typescript-eslint` strict configs
-- **TypeScript**: Strict mode enabled, no `any` types
-- **Testing**: Vitest with projects (unit/integration split in backend)
-- Error handling: Express error middleware catches all route errors
+### Workflow Execution Flow
+1. **API Request** → `POST /v1/runner/run` with `workflow_id` and `job_id`
+2. **Queue Job** → Created in Redis via `workflowQueue.createJob()` (from `@/lib/queue`)
+3. **Worker Processing** → Background worker started in `server.ts` via `startWorker()`
+4. **Engine Execution** → `engine.ts` builds chain from DB graph and executes steps sequentially
+5. **Step Pattern** → Each node type (AgentStep, TextInputStep) extends abstract `Step` class
+6. **Progress Tracking** → Real-time updates via `job.reportProgress()`, SSE to frontend
 
-## Workflow Execution System
+### Workflow Data Model
+```
+workflow (id, name, description)
+  ├── workflow_node (id, type, config JSONB)
+  │   └── step_log (tracking execution per node)
+  ├── workflow_edge (source_node_id, target_node_id)
+  └── run_log (status, started_at, finished_at)
+```
 
-### Job Queue Architecture
-- Uses **bee-queue** with Redis for asynchronous workflow execution
-- Queue configuration: `lib/queue.ts` (for job creation) and `workflow-runner/worker.ts` (for processing)
-- Worker auto-starts with server in `server.ts`
+Graph must be linear (single start node, no branching yet). Engine builds execution chain by walking edges.
 
-### Execution Flow
-1. POST to `/v1/runner/run` creates a `run_log` and queues job
-2. Worker picks up job and builds workflow graph from `workflow_node` and `workflow_edge` tables
-3. Graph traversal executes nodes topologically, creating `step_log` entries
-4. Each step uses `AgentStep` class (currently mock, needs AI API integration)
-5. GET `/v1/runner/status/:run_id` returns execution status and logs
+## Development Workflows
 
-### Key Files
-- `workflow-runner/runner.ts`: Graph building, traversal logic, and worker initialization
-- `workflow-runner/steps/step.ts`: Abstract base class for execution steps
-- `workflow-runner/steps/agent-step.ts`: AI agent step implementation (async)
-- `api/v1/runner.ts`: REST endpoints for starting runs and checking status
+### Running the Application
+```bash
+# From repository root
+npm run dev          # Run both frontend and backend
+npm run dev:be       # Backend only (port 3000)
+npm run dev:fe       # Frontend only (port 4000)
+```
+
+Backend dev script auto-starts Docker services (PostgreSQL + Redis) via `docker-compose.dev.yml`.
+
+### Testing Strategy
+Backend uses **separate Vitest projects**:
+- **Unit tests**: `**/*.unit.test.ts` - fast, no external dependencies
+- **Integration tests**: `**/*.int.test.ts` - uses real Dockerized PostgreSQL
+
+```bash
+npm run test              # Root: runs all packages
+npm run test:unit         # Backend: unit tests only
+npm run test:integration  # Backend: starts Docker, applies schema, runs integration tests
+```
+
+Integration tests use `scripts/run-int-tests.js` which:
+1. Starts `docker-compose.test.yml` with PostgreSQL on port 5433
+2. Waits for Postgres readiness
+3. Applies schema with `prisma db push`
+4. Runs integration tests with custom `DATABASE_URL`
+5. Tears down containers
+
+### API Authentication
+All `/v1/*` endpoints require `api_key` query parameter (checked in `api/route.ts` middleware). Set `VITE_API_KEY` for frontend.
+
+### Environment Variables
+Backend requires (see `.env.example`):
+```
+DATABASE_URL=postgresql://user:password@localhost:5433/postgres
+REDIS_HOST=localhost
+REDIS_PORT=6379
+GEMINI_API_KEY=your_key_here  # Currently only Gemini 2.5 Flash supported
+FRONTEND_URL=http://localhost:4000
+```
+
+## Frontend Specifics
+
+### Routing
+Uses **TanStack Router** with file-based routing in `src/routes/`:
+- Routes auto-generated to `routeTree.gen.ts`
+- Layout in `__root.tsx`
+- Search params validated with `validateSearch` (e.g., `workflowId` in workflow-builder)
+
+### Key Libraries
+- **@xyflow/react**: Visual workflow canvas (ReactFlow)
+- **@mui/material**: UI components
+- **Tailwind CSS v4**: Styling via Vite plugin
+- **TanStack DevTools**: Router + general devtools (bottom-right panel)
+
+### Workflow Builder Pattern
+See `packages/frontend/src/routes/workflow-builder/`:
+- Custom hooks (`useWorkflowData`, `useWorkflowNodes`, `useWorkflowEdges`, `useWorkflowProgress`)
+- Node types in `components/nodes/` (AgentNode, TextInputNode)
+- Real-time execution tracking via SSE from backend
+
+## Code Conventions
+
+### Async/Await
+Always use async/await (never callbacks). Proper error handling with try/catch.
+
+### Type Safety
+- Backend: TypeScript with strict mode
+- Frontend: TypeScript with React 19
+- API types in `frontend/src/types/api.ts` match backend models
+
+### Linting
+```bash
+npm run lint       # Check all packages
+npm run lint:fix   # Auto-fix issues
+```
+
+Uses ESLint v9 with flat config (`eslint.config.js`).
+
+### Database Migrations
+This project uses `prisma db push` for schema changes (no migrations folder). For production, switch to `prisma migrate dev`.
 
 ## Common Gotchas
 
-1. **Prisma client import**: Always from `@/lib/prisma`, not direct from generated folder
-2. **Test DB**: Integration tests fail if Docker isn't running (port 5433 conflict means cleanup failed)
-3. **API key**: Frontend requests fail without `VITE_API_KEY` - check `.env` files
-4. **Redis requirement**: Worker needs Redis running (default localhost:6379) - check `.env` for config
-5. **Module type**: Both packages use `"type": "module"` - ES modules only, no CommonJS
-6. **Async steps**: All Step implementations must return `Promise<string>`, not plain strings
+1. **Prisma Generate**: After pulling schema changes, run `npx prisma generate` from `packages/backend`
+2. **Docker Ports**: Dev DB on 5433 (not default 5432), Redis on 6379
+3. **Worker Startup**: Background worker must start AFTER Prisma connects (see `server.ts`)
+4. **Node Config**: `workflow_node.config` is JSONB - parse as specific type when using
+5. **Linear Workflows Only**: Multiple start nodes or cycles will throw errors in engine
+6. **Test Isolation**: Integration tests use separate DB - don't run against dev database
 
 ## Key Files Reference
 
-- API routes: `packages/backend/src/api/v1/*.ts`
-- Database models: `packages/backend/prisma/schema.prisma`
-- Prisma generated: `packages/backend/src/generated/prisma/`
-- Frontend types: `packages/frontend/src/types/api.ts`
-- Test setup: `packages/backend/scripts/run-int-tests.js`
-- Workflow builder: `packages/frontend/src/routes/workflow-builder/index.tsx`
+- `packages/backend/src/workflow-runner/engine.ts` - Workflow execution logic
+- `packages/backend/src/workflow-runner/steps/step.ts` - Base step abstraction
+- `packages/backend/src/lib/queue.ts` - Queue client (posts jobs)
+- `packages/backend/src/workflow-runner/runner.ts` - Queue worker (processes jobs)
+- `packages/backend/src/api/route.ts` - API router with auth middleware
+- `packages/frontend/src/routes/workflow-builder/index.tsx` - Main editor component

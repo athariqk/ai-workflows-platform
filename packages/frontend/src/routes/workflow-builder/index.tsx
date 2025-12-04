@@ -40,15 +40,20 @@ function EditorComponentWrapper() {
 function EditorComponent() {
   const { workflowId } = Route.useSearch();
 
-  const [currentRun, setCurrentRun] = useState<WorkflowRun | null>(null)
+  const [currentRun, setCurrentRun] = useState<WorkflowRun | null>(null);
 
   // Fetch workflow and agents
   const { workflow, loading, error, agents, agentsLoading } =
     useWorkflowData(workflowId);
 
   // Manage edges state
-  const { edges, setEdges, onEdgesChange, onConnect, markEdgesAsCascadeDeleted } =
-    useWorkflowEdges(workflowId);
+  const {
+    edges,
+    setEdges,
+    onEdgesChange,
+    onConnect,
+    markEdgesAsCascadeDeleted,
+  } = useWorkflowEdges(workflowId);
 
   // Manage nodes state (depends on edges for delete reconnection)
   const { nodes, setNodes, onNodesChange, onNodesDelete } = useWorkflowNodes(
@@ -59,7 +64,7 @@ function EditorComponent() {
   );
 
   // Track workflow progress and update node status
-  const { workflowStatus } = useWorkflowProgress(currentRun, setNodes);
+  const { workflowStatus, workflowError } = useWorkflowProgress(currentRun, setNodes);
 
   // ReactFlow drag and drop handlers
   const { onDrop, onDragOver, onDragStart } = useReactFlowHandlers(
@@ -83,12 +88,13 @@ function EditorComponent() {
     >
       <div className="flex h-full overflow-hidden">
         <div className="flex-1 flex flex-col overflow-hidden">
-          <WorkflowHeader 
-            workflow={workflow} 
-            loading={loading} 
-            error={error} 
+          <WorkflowHeader
+            workflow={workflow}
+            loading={loading}
+            error={error}
             currentRun={currentRun}
             workflowStatus={workflowStatus}
+            workflowError={workflowError}
           />
           <WorkflowCanvas
             nodes={nodes}
@@ -106,8 +112,13 @@ function EditorComponent() {
             handleRun={async () => {
               if (!workflowId) return;
               try {
-                const run = await api.runWorkflow(workflowId);
-                setCurrentRun(run);
+                const jobId = crypto.randomUUID();
+                setCurrentRun({
+                  job_id: jobId,
+                  run_id: "none",
+                  status: "idle",
+                });
+                await api.runWorkflow(workflowId, jobId);
               } catch (err) {
                 console.error("Failed to run workflow:", err);
               }

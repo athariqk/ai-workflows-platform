@@ -40,7 +40,7 @@ export default function WorkflowNode({ children, status }: WorkflowNodeProps) {
 
   return (
     <div
-      className={`px-4 py-3 shadow-lg rounded-lg bg-white border-2 min-w-[200px] hover:border-blue-600 focus:border-blue-600 transition-colors relative ${statusColors[currentStatus]}`}
+      className={`px-4 py-3 shadow-lg rounded-lg bg-white border-2 max-w-[300px] hover:border-blue-600 focus:border-blue-600 transition-colors relative ${statusColors[currentStatus]}`}
     >
       {currentStatus !== "idle" && (
         <div className="absolute -top-2 -right-2 bg-white rounded-full p-1 shadow-md">

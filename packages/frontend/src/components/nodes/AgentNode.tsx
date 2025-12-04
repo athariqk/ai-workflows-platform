@@ -14,9 +14,9 @@ export type AgentNodeData = Node<{
 
 export default function AgentNode({ data }: NodeProps<AgentNodeData>) {  
   const modelColors: Record<ModelType, string> = {
-    gemini: "bg-blue-500",
-    chatgpt: "bg-green-500",
-    claude: "bg-purple-500",
+    gemini_2_5_flash: "bg-blue-500",
+    gpt_5_mini: "bg-green-500",
+    claude_sonnet_4_5: "bg-purple-500",
   };
 
   return (

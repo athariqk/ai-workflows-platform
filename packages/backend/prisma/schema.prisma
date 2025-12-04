@@ -76,9 +76,9 @@ enum execution_status_type {
 }
 
 enum model_type {
-  gemini
-  chatgpt
-  claude
+  gemini_2_5_flash
+  gpt_5_mini
+  claude_sonnet_4_5
 }
 
 enum workflow_node_type {

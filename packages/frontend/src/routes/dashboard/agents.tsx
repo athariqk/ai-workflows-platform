@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { api } from "@/lib/api";
-import type { Agent } from "@/types/api";
+import type { Agent, ModelType } from "@/types/api";
 import { Button } from "@/components/Button";
 import { Modal } from "@/components/Modal"
 
@@ -29,7 +29,7 @@ function AgentsPage() {
   // Agent form state
   const [agentForm, setAgentForm] = useState({
     name: "",
-    model: "gemini" as "gemini" | "chatgpt" | "claude",
+    model: "gemini_2_5_flash" as ModelType,
     temperature: 0.7,
     system_prompt: "",
   });
@@ -87,7 +87,7 @@ function AgentsPage() {
       setShowCreateModal(false);
       setAgentForm({
         name: "",
-        model: "gemini",
+        model: "gemini_2_5_flash",
         temperature: 0.7,
         system_prompt: "",
       });
@@ -116,7 +116,7 @@ function AgentsPage() {
       setEditingAgent(null);
       setAgentForm({
         name: "",
-        model: "gemini",
+        model: "gemini_2_5_flash",
         temperature: 0.7,
         system_prompt: "",
       });
@@ -246,12 +246,12 @@ function AgentsPage() {
                 <select
                   required
                   value={agentForm.model}
-                  onChange={(e) => setAgentForm({ ...agentForm, model: e.target.value as "gemini" | "chatgpt" | "claude" })}
+                  onChange={(e) => setAgentForm({ ...agentForm, model: e.target.value as ModelType })}
                   className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
                 >
-                  <option value="gemini">Gemini</option>
-                  <option value="chatgpt">ChatGPT</option>
-                  <option value="claude">Claude</option>
+                  <option value="gemini_2_5_flash">Gemini 2.5 Flash</option>
+                  <option value="gpt_5_mini" disabled>GPT-5 Mini</option>
+                  <option value="claude_sonnet_4_5" disabled>Claude Sonnet 4.5</option>
                 </select>
               </div>
 
@@ -316,7 +316,7 @@ function AgentsPage() {
           setEditingAgent(null);
           setAgentForm({
             name: "",
-            model: "gemini",
+            model: "gemini_2_5_flash",
             temperature: 0.7,
             system_prompt: "",
           });
@@ -345,12 +345,12 @@ function AgentsPage() {
                 <select
                   required
                   value={agentForm.model}
-                  onChange={(e) => setAgentForm({ ...agentForm, model: e.target.value as "gemini" | "chatgpt" | "claude" })}
+                  onChange={(e) => setAgentForm({ ...agentForm, model: e.target.value as ModelType })}
                   className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
                 >
-                  <option value="gemini">Gemini</option>
-                  <option value="chatgpt">ChatGPT</option>
-                  <option value="claude">Claude</option>
+                  <option value="gemini_2_5_flash">Gemini 2.5 Flash</option>
+                  <option value="gpt_5_mini">GPT-5 Mini</option>
+                  <option value="claude_sonnet_4_5">Claude Sonnet 4.5</option>
                 </select>
               </div>
 
@@ -395,7 +395,7 @@ function AgentsPage() {
                     setEditingAgent(null);
                     setAgentForm({
                       name: "",
-                      model: "gemini",
+                      model: "gemini_2_5_flash",
                       temperature: 0.7,
                       system_prompt: "",
                     });

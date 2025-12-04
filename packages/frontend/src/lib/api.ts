@@ -156,10 +156,10 @@ class APIClient {
     });
   }
 
-  async runWorkflow(id: string): Promise<WorkflowRun> {
+  async runWorkflow(id: string, job_id: string): Promise<WorkflowRun> {
     return this.request<WorkflowRun>(`/v1/runner/run`, {
       method: 'POST',
-      body: JSON.stringify({ workflow_id: id }),
+      body: JSON.stringify({ workflow_id: id, job_id: job_id }),
     });
   }
 }
