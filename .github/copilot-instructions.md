@@ -155,6 +155,66 @@ This project uses `prisma db push` for schema changes (no migrations folder). Fo
 5. **Linear Workflows Only**: Multiple start nodes or cycles will throw errors in engine
 6. **Test Isolation**: Integration tests use separate DB - don't run against dev database
 
+## Deployment
+
+### Production Setup
+The application is containerized with Docker for production deployment:
+
+```bash
+# Copy and configure environment
+cp .env.production.example .env.production
+# Edit .env.production with your production values
+
+# Deploy with Docker Compose
+bash deploy.sh
+
+# Or manually
+docker-compose build
+docker-compose up -d
+```
+
+### Docker Architecture
+- **Backend**: Multi-stage build with Prisma generation, outputs to `dist/`
+- **Frontend**: Vite build served by nginx with SPA routing support
+- **Database**: PostgreSQL 15 with persistent volumes
+- **Queue**: Redis 7 with AOF persistence
+
+### Health Checks
+- Backend: `GET /health` (no auth required)
+- Frontend: nginx root endpoint
+- All services have Docker healthchecks configured
+
+### Database Migrations
+Production uses `prisma migrate deploy` (not `db push`):
+```bash
+# Inside backend container
+node scripts/migrate-deploy.js
+```
+
+### CI/CD Pipeline
+GitHub Actions workflow (`.github/workflows/ci-cd.yml`):
+1. **Lint** - ESLint across all packages
+2. **Test** - Unit and integration tests with coverage
+3. **Build** - TypeScript compilation and Vite build
+4. **Docker** - Build and push images to Docker Hub (on main branch)
+
+Required secrets:
+- `DOCKER_USERNAME` / `DOCKER_PASSWORD` - Docker Hub credentials
+- `VITE_API_BASE_URL` / `VITE_API_KEY` - Frontend environment variables
+
+### Environment Variables (Production)
+See `.env.production.example` for full list. Critical ones:
+- `DATABASE_URL` - PostgreSQL connection string
+- `REDIS_HOST` / `REDIS_PASSWORD` - Queue configuration
+- `GEMINI_API_KEY` - AI model API key
+- `VITE_API_KEY` - Frontend authentication
+
+### Port Configuration
+- Frontend: 80 (configurable via `FRONTEND_PORT`)
+- Backend: 3000 (configurable via `BACKEND_PORT`)
+- PostgreSQL: 5432 (internal) / 5432 (external, configurable)
+- Redis: 6379 (internal) / 6379 (external, configurable)
+
 ## Key Files Reference
 
 - `packages/backend/src/workflow-runner/engine.ts` - Workflow execution logic
@@ -163,3 +223,5 @@ This project uses `prisma db push` for schema changes (no migrations folder). Fo
 - `packages/backend/src/workflow-runner/runner.ts` - Queue worker (processes jobs)
 - `packages/backend/src/api/route.ts` - API router with auth middleware
 - `packages/frontend/src/routes/workflow-builder/index.tsx` - Main editor component
+- `docker-compose.yml` - Production orchestration
+- `deploy.sh` - Automated deployment script

@@ -16,6 +16,15 @@ app.use(express.json());
 app.use(express.text());
 app.use(express.urlencoded({ extended: false }));
 
+// Health check endpoint (no auth required)
+app.get('/health', (_req, res) => {
+    res.status(200).json({ 
+        status: 'healthy',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime()
+    });
+});
+
 app.use(apiRouter)
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
