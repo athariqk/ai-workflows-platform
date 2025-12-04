@@ -4,7 +4,8 @@
 
 **Entity Relationship Diagram**:\
 Screenshot generated using DBeaver.
-![Database ERD](./database_erd.png)
+
+![Database ERD](./database_erd.png)\
 **Some observations**:
 - Why is the `Agent` table not referenced by other tables? This is because of two reasons. First, other tables simply have no need to reference it. Second, in `workflow_node`, we don't want to store a foreign key to some `Agent` because my intuition says that a single node should not be concerned with a particular data. Instead, it should be general enough such that we can easily assign/update/remove data without affecting the table schema.
 - For this reason, I added `config` column in `workflow_node` table. This column should contain a json string (or binary) for any arbitrary data on a particular node. So, to reference an `Agent`, we can do it here.
