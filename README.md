@@ -10,6 +10,8 @@ A visual workflow builder for creating and executing AI agent workflows as direc
 - **Backend**: Express.js + Prisma + PostgreSQL + Redis
 - **Frontend**: React + TanStack Router + React Flow + Material-UI
 
+Explanations/documentations of the design decisions I took for this project (include ERD) can be viewed in [this section](docs\DESIGN_DECISIONS.md).
+
 ## Quick Start
 
 ### Development
@@ -202,29 +204,14 @@ throw NotFound("Workflow not found")
 
 **DevOps:**
 - Docker + Docker Compose
-- GitHub Actions CI/CD
 - Vitest (unit + integration tests)
 - ESLint v9
 
-## 🤝 Contributing
-
-1. Create feature branch from `develop`
-2. Make changes with tests
-3. Run linter: `npm run lint:fix`
-4. Ensure tests pass: `npm run test`
-5. Submit PR to `develop`
-
-CI/CD pipeline runs on all PRs:
-- Linting
-- Unit tests
-- Integration tests
-- Build verification
-
-## 📝 License
+## License
 
 ISC
 
-## 👤 Author
+## Author
 
 Ahmad Ghalib
 
