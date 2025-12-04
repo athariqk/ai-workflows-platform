@@ -1,7 +1,8 @@
 import express from "express"
-import uuidv7 from "../../lib/uuid-v7"
-import { prisma } from "../../lib/prisma"
+import uuidv7 from "@/lib/uuid-v7"
+import { prisma } from "@/lib/prisma"
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/client"
+import { BadRequest, NotFound } from "@/lib/http-error"
 
 /**
  * @openapi
@@ -50,9 +51,10 @@ const router = express.Router()
 
 /**
  * @openapi
- * /workflow-edges:
+ * /v1/workflow-edges:
  *   get:
  *     summary: List all workflow edges
+ *     description: Retrieve all workflow edges in the system
  *     tags: [Workflow Edges]
  *     security:
  *       - ApiKeyAuth: []
@@ -65,8 +67,6 @@ const router = express.Router()
  *               type: array
  *               items:
  *                 $ref: '#/components/schemas/WorkflowEdge'
- *       500:
- *         description: Internal server error
  */
 router.get('/', async (req, res, next) => {
   try {
@@ -79,9 +79,10 @@ router.get('/', async (req, res, next) => {
 
 /**
  * @openapi
- * /workflow-edges/{id}:
+ * /v1/workflow-edges/{id}:
  *   get:
  *     summary: Get a workflow edge by ID
+ *     description: Retrieve a specific workflow edge by its unique identifier
  *     tags: [Workflow Edges]
  *     security:
  *       - ApiKeyAuth: []
@@ -101,15 +102,13 @@ router.get('/', async (req, res, next) => {
  *             schema:
  *               $ref: '#/components/schemas/WorkflowEdge'
  *       404:
- *         description: Workflow edge not found
- *       500:
- *         description: Internal server error
+ *         $ref: '#/components/responses/NotFound'
  */
 router.get('/:id', async (req, res, next) => {
   try {
     const { id } = req.params
     const item = await prisma.workflow_edge.findUnique({ where: { id } })
-    if (!item) return res.status(404).json({ error: 'workflow_edge not found' })
+    if (!item) throw NotFound('Workflow edge not found')
     res.json(item)
   } catch (err) {
     next(err)
@@ -118,9 +117,10 @@ router.get('/:id', async (req, res, next) => {
 
 /**
  * @openapi
- * /workflow-edges:
+ * /v1/workflow-edges:
  *   post:
  *     summary: Create a new workflow edge
+ *     description: Create a new edge connecting two nodes in a workflow
  *     tags: [Workflow Edges]
  *     security:
  *       - ApiKeyAuth: []
@@ -138,14 +138,12 @@ router.get('/:id', async (req, res, next) => {
  *             schema:
  *               $ref: '#/components/schemas/WorkflowEdge'
  *       400:
- *         description: Missing required fields
- *       500:
- *         description: Internal server error
+ *         $ref: '#/components/responses/BadRequest'
  */
 router.post('/', async (req, res, next) => {
   try {
     const { workflow_id, source_node_id = null, target_node_id = null } = req.body
-    if (!workflow_id) return res.status(400).json({ error: 'workflow_id is required' })
+    if (!workflow_id) throw BadRequest('workflow_id is required')
 
     const created = await prisma.workflow_edge.create({
       data: { id: uuidv7(), workflow_id, source_node_id, target_node_id },
@@ -159,9 +157,10 @@ router.post('/', async (req, res, next) => {
 
 /**
  * @openapi
- * /workflow-edges/{id}:
+ * /v1/workflow-edges/{id}:
  *   put:
  *     summary: Update a workflow edge
+ *     description: Update an existing workflow edge by ID
  *     tags: [Workflow Edges]
  *     security:
  *       - ApiKeyAuth: []
@@ -187,9 +186,7 @@ router.post('/', async (req, res, next) => {
  *             schema:
  *               $ref: '#/components/schemas/WorkflowEdge'
  *       404:
- *         description: Workflow edge not found
- *       500:
- *         description: Internal server error
+ *         $ref: '#/components/responses/NotFound'
  */
 router.put('/:id', async (req, res, next) => {
   try {
@@ -204,16 +201,17 @@ router.put('/:id', async (req, res, next) => {
     res.json(updated)
   } catch (err) {
     if ((err as PrismaClientKnownRequestError).code === 'P2025')
-      return res.status(404).json({ error: 'workflow_edge not found' })
+      throw NotFound('Workflow edge not found')
     next(err)
   }
 })
 
 /**
  * @openapi
- * /workflow-edges/{id}:
+ * /v1/workflow-edges/{id}:
  *   delete:
  *     summary: Delete a workflow edge
+ *     description: Remove a workflow edge from the system
  *     tags: [Workflow Edges]
  *     security:
  *       - ApiKeyAuth: []
@@ -229,9 +227,7 @@ router.put('/:id', async (req, res, next) => {
  *       204:
  *         description: Successfully deleted
  *       404:
- *         description: Workflow edge not found
- *       500:
- *         description: Internal server error
+ *         $ref: '#/components/responses/NotFound'
  */
 router.delete('/:id', async (req, res, next) => {
   try {
@@ -240,7 +236,7 @@ router.delete('/:id', async (req, res, next) => {
     res.status(204).send()
   } catch (err) {
     if ((err as PrismaClientKnownRequestError).code === 'P2025')
-      return res.status(404).json({ error: 'workflow_edge not found' })
+      throw NotFound('Workflow edge not found')
     next(err)
   }
 })

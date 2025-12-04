@@ -3,7 +3,7 @@ import {
   Layers,
   Loader2,
   Plus,
-  Settings,
+  Edit,
   Trash2,
   Workflow as WorkflowIcon,
 } from "lucide-react";
@@ -174,7 +174,7 @@ function WorkflowsPage() {
                             size="sm"
                             onClick={() => handleEditWorkflow(workflow)}
                           >
-                            <Settings size={18} />
+                            <Edit size={18} />
                           </Button>
                           <Button
                             variant="danger"

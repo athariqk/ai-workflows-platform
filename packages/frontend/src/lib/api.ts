@@ -6,10 +6,15 @@ import type {
   WorkflowCreate,
   WorkflowUpdate,
   APIError,
-} from '../types/api';
+  WorkflowNode,
+  WorkflowNodeCreate,
+  WorkflowEdge,
+  WorkflowEdgeCreate,
+  WorkflowRun,
+} from '@/types/api';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
-const API_KEY = import.meta.env.VITE_API_KEY || '';
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+export const API_KEY = import.meta.env.VITE_API_KEY || '';
 
 class APIClient {
   private baseURL: string;
@@ -105,6 +110,56 @@ class APIClient {
   async deleteWorkflow(id: string): Promise<void> {
     return this.request(`/v1/workflows/${id}`, {
       method: 'DELETE',
+    });
+  }
+
+  // Workflow Node endpoints
+  async getWorkflowNodes(): Promise<WorkflowNode[]> {
+    return this.request<WorkflowNode[]>('/v1/workflow-nodes');
+  }
+
+  async createWorkflowNode(data: WorkflowNodeCreate): Promise<WorkflowNode> {
+    return this.request<WorkflowNode>('/v1/workflow-nodes', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateWorkflowNode(id: string, data: Partial<WorkflowNodeCreate>): Promise<WorkflowNode> {
+    return this.request<WorkflowNode>(`/v1/workflow-nodes/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteWorkflowNode(id: string): Promise<void> {
+    return this.request(`/v1/workflow-nodes/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Workflow Edge endpoints
+  async getWorkflowEdges(): Promise<WorkflowEdge[]> {
+    return this.request<WorkflowEdge[]>('/v1/workflow-edges');
+  }
+
+  async createWorkflowEdge(data: WorkflowEdgeCreate): Promise<WorkflowEdge> {
+    return this.request<WorkflowEdge>('/v1/workflow-edges', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteWorkflowEdge(id: string): Promise<void> {
+    return this.request(`/v1/workflow-edges/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async runWorkflow(id: string): Promise<WorkflowRun> {
+    return this.request<WorkflowRun>(`/v1/runner/run`, {
+      method: 'POST',
+      body: JSON.stringify({ workflow_id: id }),
     });
   }
 }

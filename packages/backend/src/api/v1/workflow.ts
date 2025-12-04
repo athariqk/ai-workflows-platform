@@ -1,7 +1,8 @@
 import express from "express"
-import uuidv7 from "../../lib/uuid-v7"
-import { prisma } from "../../lib/prisma"
+import uuidv7 from "@/lib/uuid-v7"
+import { prisma } from "@/lib/prisma"
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/client"
+import { BadRequest, NotFound } from "@/lib/http-error"
 
 /**
  * @openapi
@@ -48,6 +49,7 @@ const router = express.Router()
  * /v1/workflows:
  *  get:
  *    summary: List workflows
+ *    description: Retrieve all workflows in the system
  *    tags: [Workflows]
  *    security:
  *      - ApiKeyAuth: []
@@ -99,7 +101,7 @@ router.get('/:id', async (req, res, next) => {
   try {
     const { id } = req.params
     const item = await prisma.workflow.findUnique({ where: { id } })
-    if (!item) return res.status(404).json({ error: 'workflow not found' })
+    if (!item) throw NotFound('Workflow not found')
     res.json(item)
   } catch (err) {
     next(err)
@@ -111,6 +113,7 @@ router.get('/:id', async (req, res, next) => {
  * /v1/workflows:
  *  post:
  *    summary: Create a workflow
+ *    description: Create a new workflow with a name and optional description
  *    tags: [Workflows]
  *    security:
  *      - ApiKeyAuth: []
@@ -120,6 +123,9 @@ router.get('/:id', async (req, res, next) => {
  *        application/json:
  *          schema:
  *            $ref: '#/components/schemas/WorkflowCreate'
+ *          example:
+ *            name: My AI Workflow
+ *            description: A workflow that processes data through multiple AI agents
  *    responses:
  *      '201':
  *        description: Workflow created
@@ -133,7 +139,7 @@ router.get('/:id', async (req, res, next) => {
 router.post('/', async (req, res, next) => {
   try {
     const { name, description = null } = req.body
-    if (!name) return res.status(400).json({ error: 'name is required' })
+    if (!name) throw BadRequest('name is required')
 
     const created = await prisma.workflow.create({
       data: { id: uuidv7(), name, description },
@@ -189,7 +195,7 @@ router.put('/:id', async (req, res, next) => {
     res.json(updated)
   } catch (err) {
     if ((err as PrismaClientKnownRequestError).code === 'P2025')
-        return res.status(404).json({ error: 'workflow not found' })
+        throw NotFound('Workflow not found')
     next(err)
   }
 })
@@ -222,7 +228,7 @@ router.delete('/:id', async (req, res, next) => {
     res.status(204).send()
   } catch (err) {
     if ((err as PrismaClientKnownRequestError).code === 'P2025')
-        return res.status(404).json({ error: 'workflow not found' })
+        throw NotFound('Workflow not found')
     next(err)
   }
 })

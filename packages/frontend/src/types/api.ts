@@ -4,6 +4,8 @@ export type ModelType = 'gemini' | 'chatgpt' | 'claude';
 
 export type ExecutionStatusType = 'pending' | 'running' | 'completed' | 'failed';
 
+export type WorkflowStatus = "idle" | "running" | "completed" | "failed";
+
 export interface Agent {
   id: string;
   name: string;
@@ -42,9 +44,19 @@ export interface WorkflowUpdate {
   description?: string | null;
 }
 
+export type WorkflowNodeType = 'text_input' | 'agent';
+
 export interface WorkflowNode {
   id: string;
-  workflow_id: string | null;
+  workflow_id?: string | null;
+  type: WorkflowNodeType;
+  config?: Record<string, unknown> | null;
+}
+
+export interface WorkflowNodeCreate {
+  workflow_id: string;
+  type: WorkflowNodeType;
+  config: Record<string, unknown>;
 }
 
 export interface WorkflowEdge {
@@ -52,6 +64,18 @@ export interface WorkflowEdge {
   workflow_id: string;
   source_node_id: string | null;
   target_node_id: string | null;
+}
+
+export interface WorkflowEdgeCreate {
+  workflow_id: string;
+  source_node_id: string;
+  target_node_id: string;
+}
+
+export interface WorkflowRun {
+  run_id: string;
+  job_id: string;
+  status: string;
 }
 
 export interface APIError {

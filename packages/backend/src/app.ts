@@ -2,6 +2,7 @@ import express, { NextFunction, Request, Response } from "express"
 import cors from "cors"
 
 import apiRouter from './api/route'
+import { HttpError } from './lib/http-error'
 
 const app = express()
 
@@ -19,8 +20,12 @@ app.use(apiRouter)
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
-    res.status(500)
-    res.render('error', { error: err })
+    if (err instanceof HttpError) {
+        return res.status(err.statusCode).json({ error: err.message });
+    }
+    
+    console.error(err);
+    res.status(500).json({ error: 'Internal Server Error' });
 });
 
 app.use((_req, res) => {

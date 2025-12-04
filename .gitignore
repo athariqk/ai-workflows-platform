@@ -74,6 +74,7 @@ prisma/migrations/**/migration.lock
 *.local
 .vite/
 vite.config.js.timestamp-*
+.tanstack
 
 # Test databases
 *.test.db

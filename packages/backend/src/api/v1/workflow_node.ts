@@ -1,7 +1,8 @@
 import express from "express"
-import uuidv7 from "../../lib/uuid-v7"
-import { prisma } from "../../lib/prisma"
+import uuidv7 from "@/lib/uuid-v7"
+import { prisma } from "@/lib/prisma"
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/client"
+import { BadRequest, NotFound } from "@/lib/http-error"
 
 /**
  * @openapi
@@ -16,9 +17,15 @@ import { PrismaClientKnownRequestError } from "@prisma/client/runtime/client"
  *         workflow_id:
  *           type: string
  *           format: uuid
+ *         type:
+ *           $ref: '#/components/schemas/WorkflowNodeType'
+ *         config:
+ *            type: object
  *       required:
  *         - id
  *         - workflow_id
+ *         - type
+ *         - config
  *
  *     WorkflowNodeCreate:
  *       type: object
@@ -26,17 +33,24 @@ import { PrismaClientKnownRequestError } from "@prisma/client/runtime/client"
  *         workflow_id:
  *           type: string
  *           format: uuid
+ *         type:
+ *           $ref: '#/components/schemas/WorkflowNodeType'
+ *         config:
+ *            type: object
  *       required:
  *         - workflow_id
+ *         - type
+ *         - config
  */
 
 const router = express.Router()
 
 /**
  * @openapi
- * /workflow-nodes:
+ * /v1/workflow-nodes:
  *   get:
  *     summary: List all workflow nodes
+ *     description: Retrieve all workflow nodes in the system
  *     tags: [Workflow Nodes]
  *     security:
  *       - ApiKeyAuth: []
@@ -49,8 +63,6 @@ const router = express.Router()
  *               type: array
  *               items:
  *                 $ref: '#/components/schemas/WorkflowNode'
- *       500:
- *         description: Internal server error
  */
 router.get('/', async (req, res, next) => {
   try {
@@ -63,9 +75,10 @@ router.get('/', async (req, res, next) => {
 
 /**
  * @openapi
- * /workflow-nodes/{id}:
+ * /v1/workflow-nodes/{id}:
  *   get:
  *     summary: Get a workflow node by ID
+ *     description: Retrieve a specific workflow node by its unique identifier
  *     tags: [Workflow Nodes]
  *     security:
  *       - ApiKeyAuth: []
@@ -85,15 +98,13 @@ router.get('/', async (req, res, next) => {
  *             schema:
  *               $ref: '#/components/schemas/WorkflowNode'
  *       404:
- *         description: Workflow node not found
- *       500:
- *         description: Internal server error
+ *         $ref: '#/components/responses/NotFound'
  */
 router.get('/:id', async (req, res, next) => {
   try {
     const { id } = req.params
     const item = await prisma.workflow_node.findUnique({ where: { id } })
-    if (!item) return res.status(404).json({ error: 'workflow_node not found' })
+    if (!item) throw NotFound('Workflow node not found')
     res.json(item)
   } catch (err) {
     next(err)
@@ -102,9 +113,10 @@ router.get('/:id', async (req, res, next) => {
 
 /**
  * @openapi
- * /workflow-nodes:
+ * /v1/workflow-nodes:
  *   post:
  *     summary: Create a new workflow node
+ *     description: Create a new node in a workflow with specified type and configuration
  *     tags: [Workflow Nodes]
  *     security:
  *       - ApiKeyAuth: []
@@ -122,17 +134,21 @@ router.get('/:id', async (req, res, next) => {
  *             schema:
  *               $ref: '#/components/schemas/WorkflowNode'
  *       400:
- *         description: Missing required fields
- *       500:
- *         description: Internal server error
+ *         $ref: '#/components/responses/BadRequest'
  */
 router.post('/', async (req, res, next) => {
   try {
-    const { workflow_id } = req.body
-    if (!workflow_id) return res.status(400).json({ error: 'workflow_id is required' })
+    const { workflow_id, type, config } = req.body
+    if (!workflow_id) throw BadRequest('workflow_id is required')
+    if (!type) throw BadRequest('type is required')
 
     const created = await prisma.workflow_node.create({
-      data: { id: uuidv7(), workflow_id },
+      data: {
+        id: uuidv7(),
+        workflow_id: workflow_id,
+        type: type,
+        config: config,
+      },
     })
 
     res.status(201).json(created)
@@ -143,9 +159,10 @@ router.post('/', async (req, res, next) => {
 
 /**
  * @openapi
- * /workflow-nodes/{id}:
+ * /v1/workflow-nodes/{id}:
  *   put:
  *     summary: Update a workflow node
+ *     description: Update an existing workflow node by ID
  *     tags: [Workflow Nodes]
  *     security:
  *       - ApiKeyAuth: []
@@ -171,33 +188,32 @@ router.post('/', async (req, res, next) => {
  *             schema:
  *               $ref: '#/components/schemas/WorkflowNode'
  *       404:
- *         description: Workflow node not found
- *       500:
- *         description: Internal server error
+ *         $ref: '#/components/responses/NotFound'
  */
 router.put('/:id', async (req, res, next) => {
   try {
     const { id } = req.params
-    const { workflow_id } = req.body
+    const { workflow_id, config } = req.body
 
     const updated = await prisma.workflow_node.update({
       where: { id },
-      data: { workflow_id },
+      data: { workflow_id, config },
     })
 
     res.json(updated)
   } catch (err) {
     if ((err as PrismaClientKnownRequestError).code === 'P2025')
-      return res.status(404).json({ error: 'workflow_node not found' })
+      throw NotFound('Workflow node not found')
     next(err)
   }
 })
 
 /**
  * @openapi
- * /workflow-nodes/{id}:
+ * /v1/workflow-nodes/{id}:
  *   delete:
  *     summary: Delete a workflow node
+ *     description: Remove a workflow node from the system
  *     tags: [Workflow Nodes]
  *     security:
  *       - ApiKeyAuth: []
@@ -213,9 +229,7 @@ router.put('/:id', async (req, res, next) => {
  *       204:
  *         description: Successfully deleted
  *       404:
- *         description: Workflow node not found
- *       500:
- *         description: Internal server error
+ *         $ref: '#/components/responses/NotFound'
  */
 router.delete('/:id', async (req, res, next) => {
   try {
@@ -224,7 +238,7 @@ router.delete('/:id', async (req, res, next) => {
     res.status(204).send()
   } catch (err) {
     if ((err as PrismaClientKnownRequestError).code === 'P2025')
-      return res.status(404).json({ error: 'workflow_node not found' })
+      throw NotFound('Workflow node not found')
     next(err)
   }
 })

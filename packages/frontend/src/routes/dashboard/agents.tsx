@@ -3,14 +3,14 @@ import {
   Database,
   Loader2,
   Plus,
-  Settings,
+  Edit,
   Trash2,
 } from "lucide-react";
 import { useState, useEffect } from "react";
-import { api } from "../../lib/api";
-import type { Agent } from "../../types/api";
-import { Button } from "../../components/Button";
-import { Modal } from "../../components/Modal";
+import { api } from "@/lib/api";
+import type { Agent } from "@/types/api";
+import { Button } from "@/components/Button";
+import { Modal } from "@/components/Modal"
 
 export const Route = createFileRoute("/dashboard/agents")({
   component: AgentsPage,
@@ -183,7 +183,7 @@ function AgentsPage() {
                           size="sm"
                           onClick={() => handleEditAgent(agent)}
                         >
-                          <Settings size={18} />
+                          <Edit size={18} />
                         </Button>
                         <Button
                           variant="danger"

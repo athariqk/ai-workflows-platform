@@ -1,7 +1,8 @@
 import express from "express"
-import uuidv7 from "../../lib/uuid-v7"
-import { prisma } from "../../lib/prisma"
+import uuidv7 from "@/lib/uuid-v7"
+import { prisma } from "@/lib/prisma"
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/client"
+import { BadRequest, NotFound } from "@/lib/http-error"
 
 /**
  * @openapi
@@ -70,6 +71,7 @@ const router = express.Router()
  * /v1/agents:
  *  get:
  *    summary: List agents
+ *    description: Retrieve all AI agents configured in the system
  *    tags: [Agents]
  *    security:
  *      - ApiKeyAuth: []
@@ -121,7 +123,7 @@ router.get('/:id', async (req, res, next) => {
   try {
     const { id } = req.params
     const agent = await prisma.agent.findUnique({ where: { id } })
-    if (!agent) return res.status(404).json({ error: 'agent not found' })
+    if (!agent) throw NotFound('Agent not found')
     res.json(agent)
   } catch (err) {
     next(err)
@@ -133,6 +135,7 @@ router.get('/:id', async (req, res, next) => {
  * /v1/agents:
  *  post:
  *    summary: Create an agent
+ *    description: Create a new AI agent with specified model and configuration
  *    tags: [Agents]
  *    security:
  *      - ApiKeyAuth: []
@@ -142,6 +145,11 @@ router.get('/:id', async (req, res, next) => {
  *        application/json:
  *          schema:
  *            $ref: '#/components/schemas/AgentCreate'
+ *          example:
+ *            name: Content Generator
+ *            model: gemini
+ *            system_prompt: You are a helpful content generation assistant
+ *            temperature: 0.7
  *    responses:
  *      '201':
  *        description: Agent created
@@ -156,7 +164,7 @@ router.post('/', async (req, res, next) => {
   try {
     const { name, model, system_prompt = null, temperature = null } = req.body
     if (!name || !model)
-      return res.status(400).json({ error: 'name and model are required' })
+      throw BadRequest('name and model are required')
 
     const newAgent = await prisma.agent.create({
       data: {
@@ -218,7 +226,7 @@ router.put('/:id', async (req, res, next) => {
     res.json(updated)
   } catch (err) {
     if ((err as PrismaClientKnownRequestError).code === 'P2025')
-      return res.status(404).json({ error: 'agent not found' })
+      throw NotFound('Agent not found')
     next(err)
   }
 })
@@ -251,7 +259,7 @@ router.delete('/:id', async (req, res, next) => {
     res.status(204).send()
   } catch (err) {
     if ((err as PrismaClientKnownRequestError).code === 'P2025')
-      return res.status(404).json({ error: 'agent not found' })
+      throw NotFound('Agent not found')
     next(err)
   }
 })

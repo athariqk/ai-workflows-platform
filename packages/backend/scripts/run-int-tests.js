@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 /* Start a dockerized Postgres for tests, apply schema, run tests, then teardown. */
+import console from 'console'
+import process from 'process'
 import { spawnSync, spawn } from 'child_process'
+import { setTimeout } from 'timers/promises'
 import { Client } from 'pg'
 
 const COMPOSE_FILE = './docker-compose.test.yml'
@@ -21,6 +24,7 @@ async function waitForPostgres(retries = 30, delay = 1000) {
       await client.end()
       console.log('Postgres is ready')
       return
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (e) {
       process.stdout.write('.')
       await new Promise((r) => setTimeout(r, delay))
@@ -69,7 +73,7 @@ async function main() {
     })
   } catch (err) {
     console.error(err)
-    try { run('docker-compose', ['-f', COMPOSE_FILE, 'down', '--volumes']) } catch (e) { }
+    run('docker-compose', ['-f', COMPOSE_FILE, 'down', '--volumes'])
     process.exit(1)
   }
 }

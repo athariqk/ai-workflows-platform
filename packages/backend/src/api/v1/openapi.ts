@@ -8,6 +8,10 @@
  *        - gemini
  *        - chatgpt
  *        - claude
+ *    WorkflowNodeType:
+ *      type: string
+ *      enum:
+ *        - agent
  *  responses:
  *    NotFound:
  *      description: Resource not found

@@ -1,21 +1,22 @@
 import { describe, beforeAll, afterAll, it, expect } from "vitest"
 import request from "supertest"
+import { Express } from "express"
 
 const apiKey = "test"
 
-let app: any
+let app: Express
 
 describe('Agent CRUD integration tests', () => {
   let createdId: string | null = null
 
   beforeAll(async () => {
-    const mod = await import('../../../app')
-    app = (mod && mod.default) ? mod.default : mod
+    const mod = await import('@/app')
+    app = mod.default
   })
 
   afterAll(async () => {
     if (createdId) {
-      try { await request(app).delete(`/v1/agents/${createdId}?api-key=${apiKey}`) } catch (e) { }
+      await request(app).delete(`/v1/agents/${createdId}?api-key=${apiKey}`)
     }
   })
 

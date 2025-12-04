@@ -1,76 +1,118 @@
-<!-- Copilot instructions for the `ai-workflows-platform` monorepo -->
+# AI Workflows Platform - Copilot Instructions
 
-Goal
-----
-Help contributors and AI coding agents quickly understand the repository layout, key flows, and repeatable developer workflows so suggestions, edits, and tests are accurate and safe.
+## Architecture Overview
 
-Essential context (big picture)
---------------------------------
-- Monorepo managed by `turbo` with packages under `packages/`.
-- Two main apps:
-  - Backend: `packages/backend` — an Express + TypeScript API backed by Prisma and PostgreSQL.
-  - Frontend: `packages/frontend` — a Vite + React app using TanStack Router and Tailwind.
-- Data layer: Prisma schema at `packages/backend/prisma/schema.prisma`. Prisma client is generated into `packages/backend/src/generated/prisma` and the runtime adapter is configured in `packages/backend/src/lib/prisma.ts` (uses `@prisma/adapter-pg`).
+This is a **Turborepo monorepo** for a mini AI agent workflow platform with:
+- **Backend** (`packages/backend`): Express REST API with Prisma ORM + PostgreSQL
+- **Frontend** (`packages/frontend`): React + TanStack Router + ReactFlow visual workflow editor
+- **Shared configs** (`packages/typescript-config`, `packages/vitest-config`)
 
-Quick developer commands
-------------------------
-- Monorepo dev (start both):
-  - `npm install` (root)
-  - `npm run dev:be` — run backend via `turbo` (backend uses `tsx watch src/server.ts` in dev)
-  - `npm run dev:fe` — run frontend (Vite, default port 4000)
-- Backend build & run:
-  - `cd packages/backend && npm run dev` (development)
-  - `cd packages/backend && npm run build && npm start` (production artifact)
-- Tests:
-  - Unit: `cd packages/backend && npm run test:unit` (Vitest unit project)
-  - Integration: `cd packages/backend && npm run test:integration` — `scripts/run-int-tests.js` will:
-    - start `docker-compose -f docker-compose.test.yml up -d`
-    - wait for Postgres at `postgresql://postgres:postgres@localhost:5433/postgres`
-    - run `npx prisma db push --schema=./prisma/schema.prisma` with `DATABASE_URL` set
-    - run Vitest integration project
+The platform allows users to create workflows composed of AI agent nodes (Gemini, ChatGPT, Claude) connected via edges, visualize them in a drag-and-drop builder, and execute them via a runner system.
 
-Important project conventions & patterns
---------------------------------------
-- OpenAPI-first route docs: handlers in `packages/backend/src/api/v1/*.ts` contain `@openapi` JSDoc blocks used by `swagger-jsdoc` (router config in `packages/backend/src/api/route.ts`). When changing endpoints, update those JSDoc blocks.
-- API key enforcement: `packages/backend/src/api/route.ts` enforces a query `api_key` for all API routes — devs often add `?api_key=...` when calling endpoints during testing.
-- Generated code location: Prisma generator outputs to `packages/backend/src/generated/prisma`. Keep generator config in `packages/backend/prisma/schema.prisma` in sync with usages.
-- UUID helper: `packages/backend/src/lib/uuid-v7.ts` (used when creating models in handlers). Prefer its helper where unique IDs are needed.
-- TypeScript modules: packages use `type: "module"` in `package.json` — use `import` syntax and maintain ESM-friendly patterns.
+## Development Workflow
 
-Integration & external dependencies
-----------------------------------
-- Postgres for integration tests — `packages/backend/docker-compose.test.yml` and `scripts/run-int-tests.js` assume a Docker engine on localhost.
-- Prisma: run `npx prisma generate` after schema changes and `npx prisma db push --schema=./prisma/schema.prisma` for tests/local DB sync.
-- Swagger UI is exposed under `/api-docs` (dev server `http://localhost:3000/api-docs`).
+### Running the App
+```bash
+npm run dev           # Run both frontend & backend
+npm run dev:fe        # Frontend only (port 4000)
+npm run dev:be        # Backend only (port 3000)
+```
 
-Files to inspect for context when making edits
----------------------------------------------
-- `packages/backend/src/server.ts` — app entry, loads env and connects Prisma.
-- `packages/backend/src/app.ts` — Express app composition and error handling.
-- `packages/backend/src/api/route.ts` — router registration, swagger setup, and API-key middleware.
-- `packages/backend/src/api/v1/*.ts` — concrete endpoints and their OpenAPI docs (agents, workflows, nodes, edges).
-- `packages/backend/prisma/schema.prisma` — database models and enums (notice `model_type` values: `gemini`, `chatgpt`, `claude`).
-- `packages/backend/scripts/run-int-tests.js` — canonical integration-test flow (docker-compose -> db push -> vitest).
-- `packages/frontend/src/routes` — frontend route files (TanStack file-based routing).
+### Testing Strategy
+- **Backend has TWO test types**: unit tests (`*.unit.test.ts`) and integration tests (`*.int.test.ts`)
+- Integration tests use a **dockerized Postgres** (port 5433) managed by `scripts/run-int-tests.js`
+  - The script: starts docker-compose, waits for DB, applies schema via `prisma db push`, runs tests, tears down
+  - Never run `prisma migrate` manually for tests - the script handles everything
+- Run tests: `npm run test` (from root or package directory)
+- View coverage report: `npm run view-report`
 
-What to prefer in PRs from AI agents
------------------------------------
-- Make small, well-scoped changes with tests (unit tests in `packages/*` where present).
-- When changing API shapes, update the `@openapi` docblocks in the matching `src/api/v1` file and re-generate any docs if needed.
-- If adding DB fields, update `prisma/schema.prisma`, run `npx prisma generate`, and include a note about running `prisma db push` (or a migration) for dev/integration tests.
-- For new endpoints, mirror existing patterns: route file exports an `express.Router()`, uses `prisma` via `packages/backend/src/lib/prisma.ts`, and returns JSON errors via `next(err)` so the central error middleware can handle them.
+### Database & Prisma
+- Schema: `packages/backend/prisma/schema.prisma`
+- Generated client: `packages/backend/src/generated/prisma/` (custom output path)
+- Prisma adapter uses `@prisma/adapter-pg` with direct PostgreSQL connection
+- Access via singleton: `import { prisma } from "@/lib/prisma"`
 
-Examples (copyable)
--------------------
-- Start backend dev server:
-  - `cd packages/backend && npm run dev`
-- Run backend integration tests locally:
-  - `cd packages/backend && npm run test:integration`
-- Generate prisma client after schema edits:
-  - `cd packages/backend && npx prisma generate --schema=./prisma/schema.prisma`
+## Critical Patterns
 
-If something is missing
------------------------
-Ask for the specific target (backend/frontend), and include the path and a short description of the change you intend to make. I will read the relevant files and produce a precise patch with tests where applicable.
+### UUIDs: Use UUIDv7 for All IDs
+All database IDs use **UUIDv7** (time-sortable):
+```typescript
+import uuidv7 from "@/lib/uuid-v7"
+const id = uuidv7() // Returns crypto.UUID type
+```
+Never use `uuid` package or Prisma's `@default(uuid())` - always call `uuidv7()` explicitly in route handlers.
 
-— End of guidance
+### Import Aliases
+Both packages use `@/*` for absolute imports:
+- Backend: `@/lib/prisma`, `@/api/v1/agents`
+- Frontend: `@/lib/api`, `@/components/AgentNode`
+
+### API Structure
+- All routes require `?api_key=<key>` query parameter (middleware in `api/route.ts`)
+- OpenAPI/Swagger docs generated from JSDoc comments in `src/api/v1/*.ts`
+- View docs at: `http://localhost:3000/api-docs`
+- Routes follow RESTful pattern: GET, POST, PUT, DELETE with UUID params
+
+### Frontend API Client
+Centralized in `packages/frontend/src/lib/api.ts`:
+```typescript
+import { api } from '@/lib/api'
+const agents = await api.getAgents()
+```
+Uses environment variables: `VITE_API_BASE_URL`, `VITE_API_KEY`
+
+### Workflow Builder
+- Uses **ReactFlow** (`@xyflow/react`) for visual node editor
+- Custom node type: `agentNode` (see `components/AgentNode.tsx`)
+- Agent nodes dragged from sidebar, dropped onto canvas with drag-and-drop
+- State managed in `workflow-builder/index.tsx` with `screenToFlowPosition` for coordinate conversion
+
+### TanStack Router (File-Based Routing)
+- Routes in `src/routes/` auto-generate types via `routeTree.gen.ts`
+- Layout in `__root.tsx`, pages use `createFileRoute()`
+- Search params: use `validateSearch` with TypeScript types (see workflow-builder route)
+
+## Code Quality
+
+- **ESLint**: Uses `@eslint/js` + `typescript-eslint` strict configs
+- **TypeScript**: Strict mode enabled, no `any` types
+- **Testing**: Vitest with projects (unit/integration split in backend)
+- Error handling: Express error middleware catches all route errors
+
+## Workflow Execution System
+
+### Job Queue Architecture
+- Uses **bee-queue** with Redis for asynchronous workflow execution
+- Queue configuration: `lib/queue.ts` (for job creation) and `workflow-runner/worker.ts` (for processing)
+- Worker auto-starts with server in `server.ts`
+
+### Execution Flow
+1. POST to `/v1/runner/run` creates a `run_log` and queues job
+2. Worker picks up job and builds workflow graph from `workflow_node` and `workflow_edge` tables
+3. Graph traversal executes nodes topologically, creating `step_log` entries
+4. Each step uses `AgentStep` class (currently mock, needs AI API integration)
+5. GET `/v1/runner/status/:run_id` returns execution status and logs
+
+### Key Files
+- `workflow-runner/runner.ts`: Graph building, traversal logic, and worker initialization
+- `workflow-runner/steps/step.ts`: Abstract base class for execution steps
+- `workflow-runner/steps/agent-step.ts`: AI agent step implementation (async)
+- `api/v1/runner.ts`: REST endpoints for starting runs and checking status
+
+## Common Gotchas
+
+1. **Prisma client import**: Always from `@/lib/prisma`, not direct from generated folder
+2. **Test DB**: Integration tests fail if Docker isn't running (port 5433 conflict means cleanup failed)
+3. **API key**: Frontend requests fail without `VITE_API_KEY` - check `.env` files
+4. **Redis requirement**: Worker needs Redis running (default localhost:6379) - check `.env` for config
+5. **Module type**: Both packages use `"type": "module"` - ES modules only, no CommonJS
+6. **Async steps**: All Step implementations must return `Promise<string>`, not plain strings
+
+## Key Files Reference
+
+- API routes: `packages/backend/src/api/v1/*.ts`
+- Database models: `packages/backend/prisma/schema.prisma`
+- Prisma generated: `packages/backend/src/generated/prisma/`
+- Frontend types: `packages/frontend/src/types/api.ts`
+- Test setup: `packages/backend/scripts/run-int-tests.js`
+- Workflow builder: `packages/frontend/src/routes/workflow-builder/index.tsx`

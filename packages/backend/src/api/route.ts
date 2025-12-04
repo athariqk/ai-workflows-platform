@@ -6,6 +6,8 @@ import agentsRouter from "./v1/agents"
 import workflowsRouter from "./v1/workflow"
 import workflowEdgesRouter from "./v1/workflow_edge"
 import workflowNodesRouter from "./v1/workflow_node"
+import runnerRouter from "./v1/runner"
+import { Forbidden } from '@/lib/http-error';
 
 const router = express.Router()
 
@@ -21,27 +23,28 @@ const specs = swaggerJsdoc({
             { url: "http://localhost:3000", description: "Local development server" }
         ],
     },
-    apis: ["./src/api/v1/*.ts", "./src/api/openapi.ts"]
+    apis: ["./src/api/v1/*.ts", "./src/api/v1/openapi.ts"]
 });
 router.use(
-    "/api-docs",
+    "/v1/api-docs",
     swaggerUi.serve,
     swaggerUi.setup(specs)
 );
 
 router.use(function (req, res, next) {
-    const key = req.query['api_key'];
+    const key = req.query["api_key"];
 
     // key isn't present
     if (!key)
-        throw new Error('api key required');
+        throw Forbidden("api key required");
 
     next();
 });
 
 router.use("/v1/agents", agentsRouter)
 router.use("/v1/workflows", workflowsRouter)
-router.use("/v1/workflow_edges", workflowEdgesRouter)
-router.use("/v1/workflow_nodes", workflowNodesRouter)
+router.use("/v1/workflow-edges", workflowEdgesRouter)
+router.use("/v1/workflow-nodes", workflowNodesRouter)
+router.use("/v1/runner", runnerRouter)
 
 export default router
