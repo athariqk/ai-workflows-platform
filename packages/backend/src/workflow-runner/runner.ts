@@ -1,16 +1,12 @@
 import Queue from "bee-queue";
 import { executeWorkflowJob } from "./engine.js";
 
-const REDIS_HOST = process.env.REDIS_HOST || "localhost";
-const REDIS_PORT = parseInt(process.env.REDIS_PORT || "6379", 10);
-const REDIS_DB = parseInt(process.env.REDIS_DB || "0", 10);
+const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379/0";
 
 // Create a worker for workflow execution (process jobs from redis)
 const workflowQueue = new Queue("workflow-execution", {
   redis: {
-    host: REDIS_HOST,
-    port: REDIS_PORT,
-    db: REDIS_DB,
+    url: REDIS_URL,
   },
   removeOnSuccess: false,
   removeOnFailure: false,

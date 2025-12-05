@@ -3,7 +3,7 @@ import app from "./app.js"
 import { prisma } from "./lib/prisma.js"
 import { startWorker } from "./workflow-runner/runner.js"
 
-const port = process.env.PORT || 3000
+const port = process.env.BACKEND_PORT || 3000
 
 app.listen(port, () => {
     console.log(`Server is running at http://localhost:${port}`)
