@@ -19,6 +19,9 @@ RUN npm ci --workspace=awp-backend --workspace=@repo/typescript-config --workspa
 FROM base AS builder
 WORKDIR /app
 
+# Copy root package.json for workspace resolution
+COPY package*.json ./
+
 # Copy dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/packages ./packages
@@ -29,27 +32,39 @@ COPY packages/backend/src ./packages/backend/src
 COPY packages/backend/prisma ./packages/backend/prisma
 COPY packages/backend/tsconfig.json ./packages/backend/
 COPY packages/backend/prisma.config.ts ./packages/backend/
+COPY packages/backend/package*.json ./packages/backend/
 
-# Generate Prisma client
+# Generate Prisma client BEFORE building TypeScript
 WORKDIR /app/packages/backend
-RUN npx prisma generate
+RUN npx prisma generate --schema=./prisma/schema.prisma
+
+# Verify Prisma client was generated
+RUN ls -la src/generated/prisma/
 
 # Build TypeScript
+WORKDIR /app/packages/backend
 RUN npm run build
 
 # Production stage
 FROM node:20-alpine AS runner
 WORKDIR /app
 
-# Install production dependencies only
+# Copy root package.json for workspace resolution
 COPY package*.json ./
+
+# Install production dependencies only
 COPY packages/backend/package*.json ./packages/backend/
 RUN npm ci --workspace=awp-backend --only=production --ignore-scripts
 
+# Copy Prisma schema and generate client in production (needed for runtime)
+COPY packages/backend/prisma ./packages/backend/prisma
+WORKDIR /app/packages/backend
+RUN npx prisma generate --schema=./prisma/schema.prisma
+
 # Copy built application
+WORKDIR /app
 COPY --from=builder /app/packages/backend/dist ./packages/backend/dist
 COPY --from=builder /app/packages/backend/src/generated ./packages/backend/src/generated
-COPY --from=builder /app/packages/backend/prisma ./packages/backend/prisma
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && \

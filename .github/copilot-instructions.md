@@ -154,6 +154,7 @@ This project uses `prisma db push` for schema changes (no migrations folder). Fo
 4. **Node Config**: `workflow_node.config` is JSONB - parse as specific type when using
 5. **Linear Workflows Only**: Multiple start nodes or cycles will throw errors in engine
 6. **Test Isolation**: Integration tests use separate DB - don't run against dev database
+7. **Dockerfile Build Order**: Prisma client MUST be generated before TypeScript compilation - ensure `npx prisma generate` runs before `npm run build`
 
 ## Deployment
 
