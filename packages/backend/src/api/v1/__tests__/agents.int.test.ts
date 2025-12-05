@@ -10,7 +10,7 @@ describe('Agent CRUD integration tests', () => {
   let createdId: string | null = null
 
   beforeAll(async () => {
-    const mod = await import('@/app')
+    const mod = await import('@/app.js')
     app = mod.default
   })
 

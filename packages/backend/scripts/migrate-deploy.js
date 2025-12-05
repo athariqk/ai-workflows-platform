@@ -5,7 +5,8 @@
  */
 
 import { spawn } from 'child_process';
-import { exit } from 'process';
+import { process, exit } from 'process';
+import console from 'console';
 
 const DATABASE_URL = process.env.DATABASE_URL;
 

@@ -5,6 +5,8 @@
  */
 
 import http from 'http';
+import process from 'process';
+import console from 'console';
 
 const options = {
   hostname: 'localhost',
