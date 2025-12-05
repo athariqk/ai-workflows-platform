@@ -3,6 +3,9 @@
     "description": "A mini AI agent workflow platform project",
     "packageManager": "npm@11.6.2",
     "scripts": {
+        "start": "turbo run --parallel start",
+        "start:be": "turbo run start --filter=awp-backend",
+        "start:fe": "turbo run start --filter=awp-frontend",
         "build": "turbo run build",
         "dev": "turbo run --parallel dev",
         "dev:be": "turbo run dev --filter=awp-backend",

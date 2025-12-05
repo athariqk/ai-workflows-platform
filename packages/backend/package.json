@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node dist/server.js",
     "dev": "docker-compose -f docker-compose.dev.yml up -d && tsx watch src/server.ts",
-    "build": "tsc",
+    "build": "tsc && tsc-alias && node --input-type=module -e \"import fs from 'fs'; fs.cpSync('src/generated', 'dist/generated', {recursive: true})\"",
     "lint": "npx eslint .",
     "lint:fix": "npx eslint . --fix",
     "test:unit": "vitest run --project unit --passWithNoTests",
@@ -41,6 +41,7 @@
     "eslint": "^9.39.1",
     "prisma": "^7.0.1",
     "supertest": "^7.1.4",
+    "tsc-alias": "^1.8.16",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.48.0"

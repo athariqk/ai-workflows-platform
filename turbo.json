@@ -33,6 +33,11 @@
       "persistent": true,
       "cache": false
     },
+    "start": {
+      "dependsOn": [
+        "^build"
+      ]
+    },
     "transit": {
       "dependsOn": [
         "^transit"
