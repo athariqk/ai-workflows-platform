@@ -1,11 +1,11 @@
-import { prisma } from "@/lib/prisma";
-import uuidv7 from "@/lib/uuid-v7";
-import type { WorkflowJobData } from "@/lib/queue";
-import AgentStep from "@/workflow-runner/steps/agent-step";
-import { workflow_node_type } from "@/generated/prisma/enums";
-import Step from "./steps/step";
+import { prisma } from "@/lib/prisma.js";
+import uuidv7 from "@/lib/uuid-v7.js";
+import type { WorkflowJobData } from "@/lib/queue.js";
+import AgentStep from "@/workflow-runner/steps/agent-step.js";
+import { workflow_node_type } from "@/generated/prisma/enums.js";
+import Step from "./steps/step.js";
 import { Job } from "bee-queue";
-import TextInputStep from "./steps/text-input-step";
+import TextInputStep from "./steps/text-input-step.js";
 
 interface WorkflowNodeData {
   id: string;
@@ -42,7 +42,7 @@ async function buildWorkflowChain(workflowId: string): Promise<WorkflowChain> {
     targetNodes.add(edge.target_node_id);
   }
 
-  const startNodes = nodes.filter(node => !targetNodes.has(node.id));
+  const startNodes = nodes.filter((node: { id: string; }) => !targetNodes.has(node.id));
   if (startNodes.length > 1) {
     throw new Error("Workflow chain does not support multiple start nodes");
   }
@@ -82,7 +82,7 @@ async function buildWorkflowChain(workflowId: string): Promise<WorkflowChain> {
     });
 
     const nextId = nodeMap.get(currentNode.id);
-    currentNode = nextId ? nodes.find(n => n.id === nextId) : undefined;
+    currentNode = nextId ? nodes.find((n: { id: string; }) => n.id === nextId) : undefined;
   }
 
   return chain;

@@ -9,7 +9,7 @@ import {
     type Edge,
 } from "@xyflow/react";
 import { api } from "@/lib/api";
-import { transformNodesToReactFlow } from "../routes/workflow-builder/utils/workflowTransformers";
+import { transformNodesToReactFlow } from "@/utils/workflowTransformers";
 
 export function useWorkflowNodes(
     workflowId: string | undefined,

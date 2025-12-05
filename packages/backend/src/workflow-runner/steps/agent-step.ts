@@ -1,5 +1,5 @@
-import { prisma } from "@/lib/prisma";
-import Step from "@/workflow-runner/steps/step";
+import { prisma } from "@/lib/prisma.js";
+import Step from "@/workflow-runner/steps/step.js";
 
 export default class AgentStep extends Step {
     private agentId: string;

@@ -1,8 +1,8 @@
 import express from "express"
-import uuidv7 from "@/lib/uuid-v7"
-import { prisma } from "@/lib/prisma"
+import uuidv7 from "@/lib/uuid-v7.js"
+import { prisma } from "@/lib/prisma.js"
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/client"
-import { BadRequest, NotFound } from "@/lib/http-error"
+import { BadRequest, NotFound } from "@/lib/http-error.js"
 
 /**
  * @openapi

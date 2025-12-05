@@ -1,8 +1,8 @@
 import express, { NextFunction, Request, Response } from "express"
 import cors from "cors"
 
-import apiRouter from './api/route'
-import { HttpError } from './lib/http-error'
+import apiRouter from './api/route.js'
+import { HttpError } from './lib/http-error.js'
 
 const app = express()
 

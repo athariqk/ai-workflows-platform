@@ -4,6 +4,9 @@
   "compilerOptions": {
     "rootDir": "./src",
     "outDir": "./dist",
+    "module": "nodenext",
+    "lib": ["ES2023"],
+    "moduleResolution": "nodenext",
     "paths": {
       "@/*": ["./src/*"]
     }

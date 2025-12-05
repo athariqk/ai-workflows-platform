@@ -2,7 +2,7 @@ import { useCallback, type DragEvent } from "react";
 import { useReactFlow, type Node, type Edge } from "@xyflow/react";
 import { api } from "@/lib/api";
 import type { WorkflowNodeType } from "@/types/api";
-import { createNodeConfig, getReactFlowNodeType } from "../routes/workflow-builder/utils/workflowTransformers";
+import { createNodeConfig, getReactFlowNodeType } from "@/utils/workflowTransformers";
 
 export interface DraggableNodeData {
   dbNodeType: WorkflowNodeType;

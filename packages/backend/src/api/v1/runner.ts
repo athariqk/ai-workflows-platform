@@ -1,8 +1,8 @@
 import express from "express"
-import { workflowQueue, type WorkflowJobData } from "@/lib/queue"
-import { prisma } from "@/lib/prisma"
-import uuidv7 from "@/lib/uuid-v7"
-import { BadRequest, NotFound } from "@/lib/http-error"
+import { workflowQueue, type WorkflowJobData } from "@/lib/queue.js"
+import { prisma } from "@/lib/prisma.js"
+import uuidv7 from "@/lib/uuid-v7.js"
+import { BadRequest, NotFound } from "@/lib/http-error.js"
 
 const router = express.Router()
 

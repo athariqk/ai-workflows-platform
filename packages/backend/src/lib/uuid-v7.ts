@@ -21,7 +21,9 @@ export default function uuidv7(): UUID {
     value[5] = Number(timestamp & 0xffn);
 
     // version (7) and variant (RFC 4122)
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     value[6] = (value[6]! & 0x0f) | 0x70;
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     value[8] = (value[8]! & 0x3f) | 0x80;
 
     const hex = Array.from(value).map(b => b.toString(16).padStart(2, '0')).join('');

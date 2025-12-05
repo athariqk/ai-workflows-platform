@@ -2,12 +2,12 @@ import express from 'express'
 import swaggerJsdoc from "swagger-jsdoc";
 import swaggerUi from "swagger-ui-express";
 
-import agentsRouter from "./v1/agents"
-import workflowsRouter from "./v1/workflow"
-import workflowEdgesRouter from "./v1/workflow_edge"
-import workflowNodesRouter from "./v1/workflow_node"
-import runnerRouter from "./v1/runner"
-import { Forbidden } from '@/lib/http-error';
+import agentsRouter from "./v1/agents.js"
+import workflowsRouter from "./v1/workflow.js"
+import workflowEdgesRouter from "./v1/workflow_edge.js"
+import workflowNodesRouter from "./v1/workflow_node.js"
+import runnerRouter from "./v1/runner.js"
+import { Forbidden } from '@/lib/http-error.js';
 
 const router = express.Router()
 

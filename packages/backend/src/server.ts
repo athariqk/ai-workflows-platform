@@ -1,7 +1,7 @@
 import "dotenv/config";
-import app from "./app"
-import { prisma } from "./lib/prisma"
-import { startWorker } from "./workflow-runner/runner"
+import app from "./app.js"
+import { prisma } from "./lib/prisma.js"
+import { startWorker } from "./workflow-runner/runner.js"
 
 const port = process.env.PORT || 3000
 
@@ -15,7 +15,7 @@ app.listen(port, () => {
             // Start the workflow queue worker after prisma because it needs database access
             startWorker()
         })
-        .catch((err) => {
+        .catch((err: unknown) => {
             console.error("✗ Error connecting to Prisma:", err)
         })
 })

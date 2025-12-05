@@ -1,4 +1,4 @@
-import Step from "@/workflow-runner/steps/step";
+import Step from "@/workflow-runner/steps/step.js";
 
 export default class TextInputStep extends Step {
     private content: string;
