@@ -1,10 +1,10 @@
 // Backend API types matching Prisma schema
 
+export type StepType = 'text_input' | 'agent';
+
 export type ModelType = 'gemini_2_5_flash' | 'gpt_5_mini' | 'claude_sonnet_4_5';
 
-export type ExecutionStatusType = 'pending' | 'running' | 'completed' | 'failed';
-
-export type WorkflowStatus = "idle" | "running" | "completed" | "failed";
+export type WorkflowStatus = "idle" | 'pending' | 'running' | 'completed' | 'failed';
 
 export interface Agent {
   id: string;
@@ -44,18 +44,14 @@ export interface WorkflowUpdate {
   description?: string | null;
 }
 
-export type WorkflowNodeType = 'text_input' | 'agent';
-
 export interface WorkflowNode {
   id: string;
   workflow_id?: string | null;
-  type: WorkflowNodeType;
   config?: Record<string, unknown> | null;
 }
 
 export interface WorkflowNodeCreate {
   workflow_id: string;
-  type: WorkflowNodeType;
   config: Record<string, unknown>;
 }
 
@@ -76,6 +72,56 @@ export interface WorkflowRun {
   run_id: string;
   job_id: string;
   status: string;
+}
+
+export interface WorkflowStepProgress {
+    id: string;
+    name: string;
+    status: WorkflowStatus;
+    output?: string;
+    error?: string;
+}
+
+export interface WorkflowProgress {
+    workflowId: string;
+    status: WorkflowStatus;
+    // If currentStep is undefined, it means the progress is for the overall workflow
+    currentStep?: WorkflowStepProgress;
+    error?: string;
+}
+
+export interface StepLog {
+  id: string;
+  run_id: string;
+  node_id?: string;
+  name: string;
+  input?: string;
+  output?: string;
+  status?: WorkflowStatus;
+  started_at?: string;
+  finished_at?: string;
+  error?: string;
+}
+
+export interface RunLog {
+  id: string;
+  workflow_id?: string;
+  job_id?: string;
+  status?: WorkflowStatus;
+  started_at?: string;
+  finished_at?: string;
+  error?: string;
+  workflow?: {
+    id: string;
+    name: string;
+    description?: string;
+  };
+  step_log: StepLog[];
+}
+
+export interface RunLogsQueryParams {
+  workflow_id?: string;
+  status?: WorkflowStatus;
 }
 
 export interface APIError {

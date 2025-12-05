@@ -1,11 +1,12 @@
 import { prisma } from "@/lib/prisma.js";
 import uuidv7 from "@/lib/uuid-v7.js";
-import type { WorkflowJobData } from "@/lib/queue.js";
+import type { WorkflowJobData } from "@/lib/types.js";
 import AgentStep from "@/workflow-runner/steps/agent-step.js";
-import { workflow_node_type } from "@/generated/prisma/enums.js";
-import Step from "./steps/step.js";
+import Step, { StepType } from "./steps/step.js";
 import { Job } from "bee-queue";
 import TextInputStep from "./steps/text-input-step.js";
+import { WorkflowProgress } from "@/lib/types.js";
+import { reportProgress } from "./utils.js";
 
 interface WorkflowNodeData {
   id: string;
@@ -55,26 +56,41 @@ async function buildWorkflowChain(workflowId: string): Promise<WorkflowChain> {
   while (currentNode) {
     let step: Step;
 
-    switch (currentNode.type) {
-      case workflow_node_type.agent:
-        // Parse config JSON to get agent configuration
+    const config = currentNode.config as Record<string, unknown> | null;
+    if (!config)
+      continue;
+
+    //  config structure:
+    //  {
+    //    type: StepType
+    //    ...the rest of the config specific to the step type
+    //  }
+    const type = config.type as StepType | null;
+    if (!type) {
+      throw new Error(`Node ${currentNode.id} is missing type in config`);
+    }
+
+    switch (type) {
+      case 'agent':
         {
-          const config = currentNode.config as { agent: { id: string } } | null;
-          if (!config?.agent?.id) {
-            throw new Error(`Agent node ${currentNode.id} is missing agentId in config`);
+          const agent = config.agent as { id: string } | null;
+          if (!agent?.id) {
+            throw new Error(`Agent node ${currentNode.id} is missing a config`);
           }
-          step = new AgentStep(config?.agent.id);
+          step = new AgentStep(agent.id);
           break;
         }
-      case workflow_node_type.text_input:
+      case 'text_input':
         {
-          const config = currentNode.config as { value: string } | null;
-          step = new TextInputStep(config?.value || "")
+          const value = config.value as string | null;
+          step = new TextInputStep(value || "")
           break;
         }
       default:
-        throw new Error(`Unsupported node type in workflow chain: ${currentNode.type}`);
+        throw new Error(`Unsupported node type in workflow chain: ${type}`);
     }
+
+    await step.initialize();
 
     chain.data.push({
       id: currentNode.id,
@@ -107,16 +123,22 @@ async function executeWorkflow(
         data: {
           id: stepLogId,
           run_id: context.runId,
+          name: currentNode.step.name,
+          input: stepInput,
           node_id: currentNode.id,
           started_at: new Date(),
           status: "running",
         },
       });
 
-      job.reportProgress({
-        currentNodeId: currentNode.id,
-        status: "running"
-      });
+      reportProgress(job, "workflow_progress", {
+        workflowId: context.workflowId,
+        currentStep: {
+          id: currentNode.id,
+          name: currentNode.step.name,
+          status: "running"
+        }
+      } as WorkflowProgress);
 
       // Execute the step
       const output = await currentNode.step.execute(stepInput);
@@ -129,15 +151,20 @@ async function executeWorkflow(
         where: { id: stepLogId },
         data: {
           finished_at: new Date(),
+          output: output,
           status: "completed",
         },
       });
 
-      job.reportProgress({
-        currentNodeId: currentNode.id,
-        status: "completed",
-        output: output
-      });
+      reportProgress(job, "workflow_progress", {
+        workflowId: context.workflowId,
+        currentStep: {
+          id: currentNode.id,
+          name: currentNode.step.name,
+          status: "completed",
+          output: output
+        }
+      } as WorkflowProgress);
     } catch (error) {
       // Update step log with failure
       await prisma.step_log.update({
@@ -149,12 +176,14 @@ async function executeWorkflow(
         },
       });
 
-      job.reportProgress({
-        currentNodeId: currentNode.id,
-        status: "failed",
-        error: (error as Error).message
-      });
-
+      reportProgress(job, "workflow_progress", {
+        currentStep: {
+          id: currentNode.id,
+          name: currentNode.step.name,
+          status: "failed",
+          error: (error as Error).message
+        }
+      } as WorkflowProgress);
       throw error;
     }
   }
@@ -177,10 +206,10 @@ export async function executeWorkflowJob(
       },
     });
 
-    job.reportProgress({
-      currentNodeId: null,
+    reportProgress(job, "workflow_progress", {
+      workflowId: workflowId,
       status: "running"
-    });
+    } as WorkflowProgress);
 
     // Build workflow graph
     const chain = await buildWorkflowChain(workflowId);
@@ -202,10 +231,10 @@ export async function executeWorkflowJob(
       },
     });
 
-    job.reportProgress({
-      currentNodeId: null,
+    reportProgress(job, "workflow_progress", {
+      workflowId: workflowId,
       status: "completed"
-    });
+    } as WorkflowProgress);
 
     return { success: true, runId, error: null };
   } catch (error) {
@@ -218,11 +247,11 @@ export async function executeWorkflowJob(
       },
     });
 
-    job.reportProgress({
-      currentNodeId: null,
+    reportProgress(job, "workflow_progress", {
+      workflowId: workflowId,
       status: "failed",
       error: (error as Error).message
-    });
+    } as WorkflowProgress);
 
     return { success: false, runId, error: (error as Error).message };
   }

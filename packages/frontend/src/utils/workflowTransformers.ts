@@ -1,35 +1,39 @@
 import type { Node, Edge } from "@xyflow/react";
-import type { Agent, WorkflowEdge, WorkflowNode, WorkflowNodeType } from "@/types/api";
+import type { Agent, WorkflowEdge, WorkflowNode, StepType } from "@/types/api";
 
-// Node type registry - maps DB types to ReactFlow types and handles transformations
 interface NodeTypeConfig {
   reactFlowType: string;
   createReactFlowNode: (node: WorkflowNode) => Node;
-  createConfig: (data: Record<string, unknown>, position: { x: number; y: number }) => Record<string, unknown>;
+  createConfig: (
+    data: Record<string, unknown>,
+    position: { x: number; y: number }
+  ) => Record<string, unknown>;
 }
 
-const nodeTypeRegistry: Record<WorkflowNodeType, NodeTypeConfig> = {
+/**
+ * Maps DB types to ReactFlow types and handles transformations
+*/
+const nodeTypeRegistry: Record<StepType, NodeTypeConfig> = {
   agent: {
     reactFlowType: "agentNode",
     createReactFlowNode: (node) => {
       const config = node.config as {
         agent?: Agent;
         position?: { x: number; y: number };
+        type?: StepType;
       } | null;
-
+      const data = node.config ?? {
+        type: "agent",
+        name: "Unnamed Agent",
+        position: { x: 0, y: 0 },
+      };
       return {
         id: node.id,
         type: "agentNode",
         position: config?.position || { x: 0, y: 0 },
         data: {
-          agent: config?.agent || {
-            id: "unknown",
-            name: "Unknown Agent",
-            model: "gemini_2_5_flash" as const,
-            system_prompt: null,
-            temperature: null,
-          },
-          label: config?.agent?.name || "Unknown Agent",
+          ...data,
+          name: data.name ?? "Unnamed Agent",
         },
       };
     },
@@ -48,15 +52,20 @@ const nodeTypeRegistry: Record<WorkflowNodeType, NodeTypeConfig> = {
         label?: string;
         placeholder?: string;
         value?: string;
+        type?: StepType;
       } | null;
+      const data = node.config ?? {
+        type: "text_input",
+        name: "Text Input",
+        position: { x: 0, y: 0 },
+      };
       return {
         id: node.id,
         type: "textInputNode",
         position: config?.position || { x: 0, y: 0 },
         data: {
-          label: config?.label || "Text Input",
-          placeholder: config?.placeholder || "Enter text...",
-          value: config?.value || "",
+          ...data,
+          name: data.label || "Text Input",
         },
       };
     },
@@ -73,9 +82,19 @@ export function transformNodesToReactFlow(
   nodes: WorkflowNode[],
 ): Node[] {
   return nodes.map((node) => {
-    const config = nodeTypeRegistry[node.type];
+    const stepType = (node.config as { type?: StepType } | null)?.type;
+    if (!stepType) {
+      console.error(`Node ${node.id} is missing type in config or config is null`);
+      return {
+        id: node.id,
+        type: "default",
+        position: { x: 0, y: 0 },
+        data: { label: "Unknown Node" },
+      };
+    }
+    const config = nodeTypeRegistry[stepType];
     if (!config) {
-      console.error(`Unknown node type: ${node.type}`);
+      console.error(`Unknown node/step type: ${stepType}`);
       return {
         id: node.id,
         type: "default",
@@ -98,21 +117,30 @@ export function transformEdgesToReactFlow(edges: WorkflowEdge[]): Edge[] {
 }
 
 export function createNodeConfig(
-  nodeType: WorkflowNodeType,
   data: Record<string, unknown>,
   position: { x: number; y: number }
 ): Record<string, unknown> {
-  const config = nodeTypeRegistry[nodeType];
-  if (!config) {
-    throw new Error(`Unknown node type: ${nodeType}`);
+  const stepType = (data as { type?: StepType })?.type;
+  if (!stepType) {
+    console.error(`Node/step type is missing in data`);
+    return {
+      position: { x: 0, y: 0 },
+      data: { type: "unknown", label: "Unknown Node" },
+    };
   }
-  return config.createConfig(data, position);
+  const config = nodeTypeRegistry[stepType];
+  if (!config) {
+    throw new Error(`Unknown node/step type: ${stepType}`);
+  }
+  return {
+    ...config.createConfig(data, position),
+  };
 }
 
-export function getReactFlowNodeType(dbNodeType: WorkflowNodeType): string {
-  const config = nodeTypeRegistry[dbNodeType];
+export function getReactFlowNodeType(stepType: StepType): string {
+  const config = nodeTypeRegistry[stepType];
   if (!config) {
-    console.error(`Unknown node type: ${dbNodeType}`);
+    console.error(`Unknown node/step type: ${stepType}`);
     return "default";
   }
   return config.reactFlowType;
@@ -122,7 +150,7 @@ export function updateNodePosition(
   node: Node,
   position: { x: number; y: number }
 ): Record<string, unknown> {
-  // Merge existing data with new position
+  // node.data contains the full config, just update position
   return {
     ...node.data,
     position,

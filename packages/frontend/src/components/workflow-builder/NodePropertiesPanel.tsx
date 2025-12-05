@@ -56,7 +56,7 @@ export default function NodePropertiesPanel({
           </h4>
           <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
             <div className="text-sm font-medium text-slate-800">
-              {(selectedNode.data as { label?: string }).label ||
+              {(selectedNode.data as { name?: string }).name ||
                 "Untitled Node"}
             </div>
             <div className="text-xs text-slate-500 mt-1">

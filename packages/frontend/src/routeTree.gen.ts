@@ -13,6 +13,7 @@ import { Route as DashboardRouteRouteImport } from './routes/dashboard/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as WorkflowBuilderIndexRouteImport } from './routes/workflow-builder/index'
 import { Route as DashboardWorkflowsRouteImport } from './routes/dashboard/workflows'
+import { Route as DashboardExecutionLogsRouteImport } from './routes/dashboard/execution-logs'
 import { Route as DashboardAgentsRouteImport } from './routes/dashboard/agents'
 
 const DashboardRouteRoute = DashboardRouteRouteImport.update({
@@ -35,6 +36,11 @@ const DashboardWorkflowsRoute = DashboardWorkflowsRouteImport.update({
   path: '/workflows',
   getParentRoute: () => DashboardRouteRoute,
 } as any)
+const DashboardExecutionLogsRoute = DashboardExecutionLogsRouteImport.update({
+  id: '/execution-logs',
+  path: '/execution-logs',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
 const DashboardAgentsRoute = DashboardAgentsRouteImport.update({
   id: '/agents',
   path: '/agents',
@@ -45,6 +51,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRouteRouteWithChildren
   '/dashboard/agents': typeof DashboardAgentsRoute
+  '/dashboard/execution-logs': typeof DashboardExecutionLogsRoute
   '/dashboard/workflows': typeof DashboardWorkflowsRoute
   '/workflow-builder': typeof WorkflowBuilderIndexRoute
 }
@@ -52,6 +59,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRouteRouteWithChildren
   '/dashboard/agents': typeof DashboardAgentsRoute
+  '/dashboard/execution-logs': typeof DashboardExecutionLogsRoute
   '/dashboard/workflows': typeof DashboardWorkflowsRoute
   '/workflow-builder': typeof WorkflowBuilderIndexRoute
 }
@@ -60,6 +68,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRouteRouteWithChildren
   '/dashboard/agents': typeof DashboardAgentsRoute
+  '/dashboard/execution-logs': typeof DashboardExecutionLogsRoute
   '/dashboard/workflows': typeof DashboardWorkflowsRoute
   '/workflow-builder/': typeof WorkflowBuilderIndexRoute
 }
@@ -69,6 +78,7 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/dashboard/agents'
+    | '/dashboard/execution-logs'
     | '/dashboard/workflows'
     | '/workflow-builder'
   fileRoutesByTo: FileRoutesByTo
@@ -76,6 +86,7 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/dashboard/agents'
+    | '/dashboard/execution-logs'
     | '/dashboard/workflows'
     | '/workflow-builder'
   id:
@@ -83,6 +94,7 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/dashboard/agents'
+    | '/dashboard/execution-logs'
     | '/dashboard/workflows'
     | '/workflow-builder/'
   fileRoutesById: FileRoutesById
@@ -123,6 +135,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardWorkflowsRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
+    '/dashboard/execution-logs': {
+      id: '/dashboard/execution-logs'
+      path: '/execution-logs'
+      fullPath: '/dashboard/execution-logs'
+      preLoaderRoute: typeof DashboardExecutionLogsRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
     '/dashboard/agents': {
       id: '/dashboard/agents'
       path: '/agents'
@@ -135,11 +154,13 @@ declare module '@tanstack/react-router' {
 
 interface DashboardRouteRouteChildren {
   DashboardAgentsRoute: typeof DashboardAgentsRoute
+  DashboardExecutionLogsRoute: typeof DashboardExecutionLogsRoute
   DashboardWorkflowsRoute: typeof DashboardWorkflowsRoute
 }
 
 const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
   DashboardAgentsRoute: DashboardAgentsRoute,
+  DashboardExecutionLogsRoute: DashboardExecutionLogsRoute,
   DashboardWorkflowsRoute: DashboardWorkflowsRoute,
 }
 

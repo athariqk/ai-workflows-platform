@@ -17,8 +17,6 @@ import { BadRequest, NotFound } from "@/lib/http-error.js"
  *         workflow_id:
  *           type: string
  *           format: uuid
- *         type:
- *           $ref: '#/components/schemas/WorkflowNodeType'
  *         config:
  *            type: object
  *       required:
@@ -33,13 +31,10 @@ import { BadRequest, NotFound } from "@/lib/http-error.js"
  *         workflow_id:
  *           type: string
  *           format: uuid
- *         type:
- *           $ref: '#/components/schemas/WorkflowNodeType'
  *         config:
  *            type: object
  *       required:
  *         - workflow_id
- *         - type
  *         - config
  */
 
@@ -116,7 +111,7 @@ router.get('/:id', async (req, res, next) => {
  * /v1/workflow-nodes:
  *   post:
  *     summary: Create a new workflow node
- *     description: Create a new node in a workflow with specified type and configuration
+ *     description: Create a new node in a workflow with specified configuration
  *     tags: [Workflow Nodes]
  *     security:
  *       - ApiKeyAuth: []
@@ -138,15 +133,13 @@ router.get('/:id', async (req, res, next) => {
  */
 router.post('/', async (req, res, next) => {
   try {
-    const { workflow_id, type, config } = req.body
+    const { workflow_id, config } = req.body
     if (!workflow_id) throw BadRequest('workflow_id is required')
-    if (!type) throw BadRequest('type is required')
 
     const created = await prisma.workflow_node.create({
       data: {
         id: uuidv7(),
         workflow_id: workflow_id,
-        type: type,
         config: config,
       },
     })

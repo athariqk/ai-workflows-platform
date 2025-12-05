@@ -87,15 +87,14 @@ export function WorkflowCanvas({
         },
       ]);
 
-      // Update node config in database
-      if (workflowId && node.type === "textInputNode") {
+      if (workflowId) {
+        // Preserve entire config and merge with updates
         const updatedConfig = {
-          label: (node.data as { label?: string }).label,
-          placeholder: (node.data as { placeholder?: string }).placeholder,
-          position: node.position,
+          ...node.data,
           ...updates,
         };
 
+        // Send away!!
         api
           .updateWorkflowNode(nodeId, { config: updatedConfig })
           .catch((err) => {
@@ -160,6 +159,9 @@ export function WorkflowCanvas({
         onNodeClick={onNodeClick}
         onPaneClick={onPaneClick}
         onNodeContextMenu={onNodeContextMenu}
+        defaultEdgeOptions={{
+          style: { strokeWidth: 2 },
+        }}
         fitView
       >
         <Background />
@@ -176,6 +178,11 @@ export function WorkflowCanvas({
           />
         )}
       </ReactFlow>
+      {!selectedNode && nodes.length > 0 && (
+        <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm border border-slate-200 rounded-lg px-4 py-2 shadow-sm text-sm text-slate-600 pointer-events-none">
+          💡 Click a node to view its properties
+        </div>
+      )}
       <NodePropertiesPanel
         selectedNode={selectedNode}
         onClose={() => setSelectedNode(null)}

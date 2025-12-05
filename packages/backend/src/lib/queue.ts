@@ -12,8 +12,3 @@ export const workflowQueue = new Queue("workflow-execution", {
   removeOnFailure: false,
   stallInterval: 5000,
 });
-
-export interface WorkflowJobData {
-  workflowId: string;
-  runId: string;
-}

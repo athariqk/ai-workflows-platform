@@ -18,6 +18,7 @@ model agent {
 model run_log {
   id          String                 @id(map: "run_log_pk") @db.Uuid
   workflow_id String?                @db.Uuid
+  job_id      String?                @db.Uuid
   status      execution_status_type?
   started_at  DateTime?              @db.Timestamp(6)
   finished_at DateTime?              @db.Timestamp(6)
@@ -30,6 +31,9 @@ model step_log {
   id            String                 @id(map: "step_log_pk") @db.Uuid
   run_id        String?                @db.Uuid
   node_id       String?                @db.Uuid
+  name          String                 @default("unnamed_step")
+  input         Json?                  @db.JsonB
+  output        Json?                  @db.JsonB
   started_at    DateTime?              @db.Timestamp(6)
   finished_at   DateTime?              @db.Timestamp(6)
   status        execution_status_type?
@@ -60,7 +64,6 @@ model workflow_edge {
 model workflow_node {
   id                                                        String             @id(map: "node_pk") @db.Uuid
   workflow_id                                               String             @db.Uuid
-  type                                                      workflow_node_type
   config                                                    Json?              @db.JsonB
   step_log                                                  step_log[]
   workflow_edge_workflow_edge_source_node_idToworkflow_node workflow_edge[]    @relation("workflow_edge_source_node_idToworkflow_node")
@@ -79,9 +82,4 @@ enum model_type {
   gemini_2_5_flash
   gpt_5_mini
   claude_sonnet_4_5
-}
-
-enum workflow_node_type {
-  text_input
-  agent
 }

@@ -1,6 +1,6 @@
 import { useState, type DragEvent } from "react";
 import { Loader2, Bot, Search, Type, Box } from "lucide-react";
-import type { Agent, WorkflowNodeType } from "@/types/api";
+import type { Agent, StepType } from "@/types/api";
 import type { LucideIcon } from "lucide-react";
 
 interface NodeSidebarProps {
@@ -8,7 +8,6 @@ interface NodeSidebarProps {
   agentsLoading: boolean;
   onDragStart: (
     event: DragEvent,
-    dbNodeType: WorkflowNodeType,
     data: Record<string, unknown>
   ) => void;
 }
@@ -16,7 +15,6 @@ interface NodeSidebarProps {
 // Node definition (unified structure for all node types)
 interface NodeDefinition {
   id: string;
-  dbNodeType: WorkflowNodeType;
   name: string;
   description: string;
   icon: LucideIcon;
@@ -33,12 +31,13 @@ export function NodeSidebar({
 
   const agentNodes: NodeDefinition[] = agents.map((agent) => ({
     id: agent.id,
-    dbNodeType: "agent" as const,
     name: agent.name,
     description: agent.model,
     icon: Bot,
     color: "text-indigo-600",
     data: {
+      type: "agent" as StepType,
+      name: agent.name,
       agent: { ...agent },
     },
   }));
@@ -46,13 +45,14 @@ export function NodeSidebar({
   const utilityNodes: NodeDefinition[] = [
     {
       id: "text-input",
-      dbNodeType: "text_input" as const,
       name: "Text Input",
       description: "Manual text input",
       icon: Type,
       color: "text-emerald-600",
       data: {
+        type: "text_input" as StepType,
         label: "Text Input",
+        name: "Text Input",
         placeholder: "Enter text...",
       },
     },
@@ -109,7 +109,7 @@ export function NodeSidebar({
               <div
                 key={node.id}
                 draggable
-                onDragStart={(e) => onDragStart(e, node.dbNodeType, node.data)}
+                onDragStart={(e) => onDragStart(e, node.data)}
                 className="p-2 bg-slate-50 border border-slate-200 rounded-lg cursor-move hover:bg-slate-100 hover:border-indigo-300 transition-colors"
               >
                 <div className="flex items-center gap-2">

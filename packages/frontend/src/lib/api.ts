@@ -5,12 +5,14 @@ import type {
   Workflow,
   WorkflowCreate,
   WorkflowUpdate,
+  WorkflowStatus,
   APIError,
   WorkflowNode,
   WorkflowNodeCreate,
   WorkflowEdge,
   WorkflowEdgeCreate,
   WorkflowRun,
+  RunLog,
 } from '@/types/api';
 
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
@@ -27,10 +29,16 @@ class APIClient {
 
   private async request<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
+    queries?: Record<string, string>
   ): Promise<T> {
     const url = new URL(endpoint, this.baseURL);
     url.searchParams.set('api_key', this.apiKey);
+    if (queries) {
+      for (const [key, value] of Object.entries(queries)) {
+        url.searchParams.set(key, value);
+      }
+    }
 
     const response = await fetch(url.toString(), {
       ...options,
@@ -162,6 +170,30 @@ class APIClient {
       body: JSON.stringify({ workflow_id: id, job_id: job_id }),
     });
   }
+
+  async getRunLogs(params?: {
+    workflow_id?: string;
+    status?: WorkflowStatus;
+  }): Promise<RunLog[]> {
+    const queries: Record<string, string> = {};
+    if (params?.workflow_id) {
+      queries.workflow_id = params.workflow_id;
+    }
+    if (params?.status) {
+      queries.status = params.status;
+    }
+
+    const runLogs = await this.request<RunLog[]>("/v1/runner/runs", {
+      method: 'GET',
+    }, Object.entries(queries).length > 0 ? queries : undefined);
+
+    return runLogs;
+  }
+
+  async getRunStatus(runId: string): Promise<RunLog> {
+    return this.request<RunLog>(`/v1/runner/status/${runId}`);
+  }
+
 }
 
 export const api = new APIClient(API_BASE_URL, API_KEY);

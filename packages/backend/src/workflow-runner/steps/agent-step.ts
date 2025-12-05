@@ -1,25 +1,32 @@
+import { agent } from "@/generated/prisma/client.js";
 import { prisma } from "@/lib/prisma.js";
 import Step from "@/workflow-runner/steps/step.js";
 
 export default class AgentStep extends Step {
     private agentId: string;
+    private agent: agent | null;
 
     constructor(agentId: string) {
-        super();
+        super("agent");
         this.agentId = agentId;
+        this.agent = null;
+    }
+
+    async initialize(): Promise<void> {
+        this.agent = await prisma.agent.findUnique({
+            where: { id: this.agentId },
+        });
+        if (this.agent?.name) {
+            this.name = `${this.name} (${this.agent.name})`;
+        }
     }
 
     async execute(input?: string): Promise<string> {
-        const agent = await prisma.agent.findUnique({
-            where: { id: this.agentId },
-        });
+        if (!this.agent)
+            throw new Error(`Agent has not been loaded`);
 
-        if (!agent)
-            throw new Error(`Agent with id ${this.agentId} not found`);
-
-        if (agent.model !== "gemini_2_5_flash") {
-            throw new Error(`Model ${agent.model} is not supported. Only gemini_2_5_flash is currently supported.`);
-        }
+        if (this.agent.model !== "gemini_2_5_flash")
+            throw new Error(`Model ${this.agent.model} is not supported. Only gemini_2_5_flash is currently supported.`);
 
         const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
         if (!GEMINI_API_KEY) {
@@ -28,34 +35,29 @@ export default class AgentStep extends Step {
 
         const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
 
+        const systemPrompt = `You are an agentic LLM. Use tools as needed to answer the user's query.
+            The common behavior for an agentic LLM is: Goal-oriented: Agentic LLMs would actively pursue goals, either
+            intrinsically defined or given by users. Proactive: They would take initiative rather than solely reacting to prompts.
+            Autonomous: They would exhibit independent decision-making in the pursuit of goals, demonstrating some degree of
+            self-direction. World-aware: They would be able to perceive and interact with real-world environments (or sufficiently
+            complex simulations) to gather information, carry out actions, and update their understanding. Also, the following is a
+            custom system prompt for your behavior/role: ${this.agent.system_prompt}`
+
         const requestBody = {
-            system_instruction: {
-                parts: [
-                    {
-                        text: agent.system_prompt
-                    }
-                ]
-            },
-            contents: [
-                {
-                    parts: [
-                        {
-                            text: input
-                        }
-                    ]
-                }
-            ],
-            generationConfig: agent.temperature !== null ? {
-                temperature: agent.temperature
+            system_instruction: { parts: [{ text: systemPrompt }] },
+            contents: [{ parts: [{ text: input }] }],
+            tools: [{ google_search: {} }],
+            generationConfig: this.agent.temperature !== null ? {
+                temperature: this.agent.temperature
             } : undefined
         };
 
         console.log('[AgentStep] Gemini API Request:', {
             url,
-            agent: { id: agent.id, name: agent.name, model: agent.model },
-            system_prompt: agent.system_prompt,
+            agent: { id: this.agent.id, name: this.agent.name, model: this.agent.model },
+            system_prompt: this.agent.system_prompt,
             input,
-            temperature: agent.temperature,
+            temperature: this.agent.temperature,
         });
 
         const response = await fetch(url, {
@@ -95,7 +97,7 @@ export default class AgentStep extends Step {
         }
 
         const generatedText = data.candidates[0]?.content?.parts?.[0]?.text || '';
-        
+
         console.log('[AgentStep] Gemini API Response:', {
             generatedTextLength: generatedText.length,
             preview: generatedText.substring(0, 100) + (generatedText.length > 100 ? '...' : ''),

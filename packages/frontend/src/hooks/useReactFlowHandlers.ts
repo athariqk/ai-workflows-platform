@@ -1,11 +1,10 @@
 import { useCallback, type DragEvent } from "react";
 import { useReactFlow, type Node, type Edge } from "@xyflow/react";
 import { api } from "@/lib/api";
-import type { WorkflowNodeType } from "@/types/api";
+import type { StepType } from "@/types/api";
 import { createNodeConfig, getReactFlowNodeType } from "@/utils/workflowTransformers";
 
 export interface DraggableNodeData {
-  dbNodeType: WorkflowNodeType;
   reactFlowNodeType: string;
   data: Record<string, unknown>;
 }
@@ -41,7 +40,6 @@ export function useReactFlowHandlers(
       });
 
       const nodeConfig = createNodeConfig(
-        draggableData.dbNodeType,
         draggableData.data,
         position
       );
@@ -49,7 +47,6 @@ export function useReactFlowHandlers(
       api
         .createWorkflowNode({
           workflow_id: workflowId,
-          type: draggableData.dbNodeType,
           config: nodeConfig,
         })
         .then((nodeInDb) => {
@@ -58,7 +55,7 @@ export function useReactFlowHandlers(
               id: nodeInDb.id,
               type: draggableData.reactFlowNodeType,
               position,
-              data: draggableData.data,
+              data: nodeConfig,
             };
             const newNodes = nodes.concat(newNode);
             return newNodes;
@@ -72,10 +69,14 @@ export function useReactFlowHandlers(
   );
 
   const onDragStart = useCallback(
-    (event: DragEvent, dbNodeType: WorkflowNodeType, data: Record<string, unknown>) => {
-      const reactFlowNodeType = getReactFlowNodeType(dbNodeType);
+    (event: DragEvent, data: Record<string, unknown>) => {
+      const type = (data as { type?: StepType })?.type;
+      if (!type) {
+        console.error("Node type is required for drag operation");
+        return;
+      }
+      const reactFlowNodeType = getReactFlowNodeType(type);
       const draggableData: DraggableNodeData = {
-        dbNodeType,
         reactFlowNodeType,
         data,
       };

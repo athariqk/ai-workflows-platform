@@ -8,6 +8,7 @@ import {
     type NodeChange,
     type Edge,
 } from "@xyflow/react";
+import { updateNodePosition } from "@/utils/workflowTransformers";
 import { api } from "@/lib/api";
 import { transformNodesToReactFlow } from "@/utils/workflowTransformers";
 
@@ -52,11 +53,7 @@ export function useWorkflowNodes(
                             const node = updatedNodes.find((n) => n.id === change.id);
                             if (node) {
                                 // Update node config with new position
-                                // Preserve existing data by merging with new position
-                                const updatedConfig = {
-                                    ...node.data,
-                                    position: change.position,
-                                };
+                                const updatedConfig = updateNodePosition(node, change.position);
 
                                 api
                                     .updateWorkflowNode(change.id, {

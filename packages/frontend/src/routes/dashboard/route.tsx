@@ -34,10 +34,15 @@ function DashboardLayoutRoute() {
               />
             )}
           </Link>
-          <NavButton
-            icon={<Clock size={18} />}
-            label="Execution Logs"
-          />
+          <Link to="/dashboard/execution-logs" className="block">
+            {({ isActive }) => (
+              <NavButton
+                icon={<Clock size={18} />}
+                label="Execution Logs"
+                isActive={isActive}
+              />
+            )}
+          </Link>
         </>
       }
     >

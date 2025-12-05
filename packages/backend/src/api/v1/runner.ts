@@ -1,8 +1,11 @@
 import express from "express"
-import { workflowQueue, type WorkflowJobData } from "@/lib/queue.js"
+import { workflowQueue } from "@/lib/queue.js"
+import { WorkflowJobData } from "@/lib/types.js"
 import { prisma } from "@/lib/prisma.js"
 import uuidv7 from "@/lib/uuid-v7.js"
 import { BadRequest, NotFound } from "@/lib/http-error.js"
+import { run_logWhereInput } from "@/generated/prisma/internal/prismaNamespace.js"
+import { execution_status_type } from "@/generated/prisma/enums.js"
 
 const router = express.Router()
 
@@ -29,6 +32,74 @@ const router = express.Router()
  *         status:
  *           type: string
  *           enum: [pending, running, completed, failed]
+ *     StepLog:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: string
+ *           format: uuid
+ *         run_id:
+ *           type: string
+ *           format: uuid
+ *         node_id:
+ *           type: string
+ *           format: uuid
+ *           nullable: true
+ *         name:
+ *           type: string
+ *           default: unnamed_step
+ *         input:
+ *           type: object
+ *           nullable: true
+ *           description: JSON input data for the step
+ *         output:
+ *           type: object
+ *           nullable: true
+ *           description: JSON output data from the step
+ *         status:
+ *           type: string
+ *           enum: [pending, running, completed, failed]
+ *         started_at:
+ *           type: string
+ *           format: date-time
+ *         finished_at:
+ *           type: string
+ *           format: date-time
+ *           nullable: true
+ *         error:
+ *           type: string
+ *           nullable: true
+ *     RunLog:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: string
+ *           format: uuid
+ *         workflow_id:
+ *           type: string
+ *           format: uuid
+ *         job_id:
+ *           type: string
+ *           format: uuid
+ *         status:
+ *           type: string
+ *           enum: [pending, running, completed, failed]
+ *         started_at:
+ *           type: string
+ *           format: date-time
+ *         finished_at:
+ *           type: string
+ *           format: date-time
+ *           nullable: true
+ *         error:
+ *           type: string
+ *           nullable: true
+ *         workflow:
+ *           $ref: '#/components/schemas/Workflow'
+ *         step_log:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/StepLog'
  */
 
 /**
@@ -88,6 +159,7 @@ router.post("/run", async (req, res, next) => {
             data: {
                 id: runId,
                 workflow_id,
+                job_id: job_id,
                 status: "pending",
             },
         });
@@ -119,12 +191,21 @@ router.get("/run-progress", async (req, res, next) => {
     res.setHeader('Connection', 'keep-alive');
 
     try {
-        workflowQueue.on("job progress", (jobId, progress) => {
+        const progressHandler = (jobId: string, progress: unknown) => {
+            if ((progress as { type?: string }).type !== "workflow_progress")
+                return;
             const data = {
                 jobId: jobId,
-                progress: progress
+                progress: progress 
             }
             res.write("data: " + JSON.stringify(data) + "\n\n");
+        };
+
+        workflowQueue.on("job progress", progressHandler);
+
+        res.on("close", () => {
+            workflowQueue.removeListener("job progress", progressHandler);
+            res.end();
         });
     } catch (err) {
         next(err);
@@ -155,61 +236,7 @@ router.get("/run-progress", async (req, res, next) => {
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 id:
- *                   type: string
- *                   format: uuid
- *                 workflow_id:
- *                   type: string
- *                   format: uuid
- *                 status:
- *                   type: string
- *                   enum: [pending, running, completed, failed]
- *                 started_at:
- *                   type: string
- *                   format: date-time
- *                   nullable: true
- *                 finished_at:
- *                   type: string
- *                   format: date-time
- *                   nullable: true
- *                 error:
- *                   type: string
- *                   nullable: true
- *                 step_log:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       id:
- *                         type: string
- *                         format: uuid
- *                       run_id:
- *                         type: string
- *                         format: uuid
- *                       node_id:
- *                         type: string
- *                         format: uuid
- *                       status:
- *                         type: string
- *                         enum: [pending, running, completed, failed]
- *                       input:
- *                         type: string
- *                         nullable: true
- *                       output:
- *                         type: string
- *                         nullable: true
- *                       error:
- *                         type: string
- *                         nullable: true
- *                       started_at:
- *                         type: string
- *                         format: date-time
- *                       finished_at:
- *                         type: string
- *                         format: date-time
- *                         nullable: true
+ *               $ref: '#/components/schemas/RunLog'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  */
@@ -233,6 +260,89 @@ router.get("/status/:run_id", async (req, res, next) => {
         }
 
         res.json(runLog);
+    } catch (err) {
+        next(err);
+    }
+});
+
+/**
+ * @openapi
+ * /v1/runner/runs:
+ *   get:
+ *     summary: Get workflow run logs
+ *     description: Retrieves workflow run logs with their associated step logs
+ *     tags:
+ *       - Runner
+ *     security:
+ *       - ApiKeyAuth: []
+ *     parameters:
+ *       - name: workflow_id
+ *         in: query
+ *         description: Filter by workflow ID
+ *         required: false
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *       - name: status
+ *         in: query
+ *         description: Filter by execution status
+ *         required: false
+ *         schema:
+ *           type: string
+ *           enum: [pending, running, completed, failed]
+ *     responses:
+ *       200:
+ *         description: List of run logs
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/RunLog'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ */
+router.get("/runs", async (req, res, next) => {
+    try {
+        const { workflow_id, status } = req.query;
+
+        // Build where clause
+        const where: run_logWhereInput = {};
+        
+        if (workflow_id) {
+            where.workflow_id = workflow_id as string;
+        }
+
+        if (status) {
+            if (!['pending', 'running', 'completed', 'failed'].includes(status as string)) {
+                throw BadRequest("status must be one of: pending, running, completed, failed");
+            }
+            where.status = status as execution_status_type;
+        }
+
+        // Get data
+        const data = await prisma.run_log.findMany({
+            where,
+            orderBy: {
+                started_at: 'desc',
+            },
+            include: {
+                workflow: {
+                    select: {
+                        id: true,
+                        name: true,
+                        description: true,
+                    },
+                },
+                step_log: {
+                    orderBy: {
+                        started_at: 'asc',
+                    },
+                },
+            },
+        });
+
+        res.json(data);
     } catch (err) {
         next(err);
     }

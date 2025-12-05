@@ -13,7 +13,7 @@ import { NodeSidebar } from "../../components/workflow-builder/NodeSidebar";
 import { WorkflowCanvas } from "../../components/workflow-builder/WorkflowCanvas";
 import { RunButton } from "../../components/workflow-builder/RunButton";
 import { useState } from "react";
-import type { WorkflowRun } from "@/types/api";
+import type { WorkflowProgress, WorkflowRun } from "@/types/api";
 import { api } from "@/lib/api";
 
 interface WorkflowBuilderSearch {
@@ -63,8 +63,32 @@ function EditorComponent() {
     markEdgesAsCascadeDeleted
   );
 
-  // Track workflow progress and update node status
-  const { workflowStatus, workflowError } = useWorkflowProgress(currentRun, setNodes);
+  const handleProgress = (progress: WorkflowProgress) => {
+    console.log("Workflow progress update:", progress);
+    // Update node status based on progress
+    setNodes((currentNodes) =>
+      currentNodes.map((node) => {
+        if (node.id === progress.currentStep?.id) {
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              output: progress.currentStep?.output,
+              status: progress.currentStep.status,
+              error: progress.currentStep.error ?? undefined,
+            },
+          };
+        }
+        return node;
+      })
+    );
+  };
+
+  // Track a single workflow progress and update node/step status
+  const { workflowStatus, workflowError } = useWorkflowProgress(
+    currentRun,
+    handleProgress
+  );
 
   // ReactFlow drag and drop handlers
   const { onDrop, onDragOver, onDragStart } = useReactFlowHandlers(

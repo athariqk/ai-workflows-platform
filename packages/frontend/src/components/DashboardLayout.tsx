@@ -41,7 +41,7 @@ export function DashboardLayout({
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-slate-200"></div>
             <div>
-              <p className="text-sm font-medium">Ahmad</p>
+              <p className="text-sm font-medium">User</p>
               <p className="text-xs text-slate-500">Admin</p>
             </div>
           </div>
