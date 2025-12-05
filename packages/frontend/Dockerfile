@@ -18,19 +18,17 @@ RUN npm ci --workspace=awp-frontend --workspace=@repo/typescript-config
 FROM base AS builder
 WORKDIR /app
 
-# Build arguments for environment variables
 ARG VITE_API_BASE_URL=http://localhost:3000
 ARG VITE_API_KEY
 
-# Copy dependencies from deps stage
+COPY package.json ./ 
+
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/packages ./packages
 
-# Copy source code and configuration
 COPY turbo.json ./
 COPY packages/frontend ./packages/frontend
 
-# Build application with environment variables
 WORKDIR /app/packages/frontend
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 ENV VITE_API_KEY=$VITE_API_KEY
