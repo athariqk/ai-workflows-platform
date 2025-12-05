@@ -7,7 +7,7 @@ import {
   type Connection,
 } from "@xyflow/react";
 import { api } from "@/lib/api";
-import { transformEdgesToReactFlow } from "../utils/workflowTransformers";
+import { transformEdgesToReactFlow } from "../routes/workflow-builder/utils/workflowTransformers";
 
 export function useWorkflowEdges(workflowId: string | undefined) {
   const [edges, setEdges] = useState<Edge[]>([]);

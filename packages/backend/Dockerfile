@@ -6,7 +6,7 @@ WORKDIR /app
 FROM base AS deps
 WORKDIR /app
 
-# Copy package files from root and backend
+# Copy package files
 COPY package*.json ./
 COPY packages/backend/package*.json ./packages/backend/
 COPY packages/typescript-config ./packages/typescript-config
@@ -36,7 +36,10 @@ COPY packages/backend/package*.json ./packages/backend/
 
 # Generate Prisma client BEFORE building TypeScript
 WORKDIR /app/packages/backend
-RUN npx prisma generate --schema=./prisma/schema.prisma
+
+# We provide a fake URL so prisma.config.ts doesn't crash. 
+# Generation doesn't need a real connection.
+RUN DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy" npx prisma generate --schema=./prisma/schema.prisma
 
 # Verify Prisma client was generated
 RUN ls -la src/generated/prisma/
@@ -56,14 +59,11 @@ COPY package*.json ./
 COPY packages/backend/package*.json ./packages/backend/
 RUN npm ci --workspace=awp-backend --only=production --ignore-scripts
 
-# Copy Prisma schema and generate client in production (needed for runtime)
-COPY packages/backend/prisma ./packages/backend/prisma
-WORKDIR /app/packages/backend
-RUN npx prisma generate --schema=./prisma/schema.prisma
-
 # Copy built application
 WORKDIR /app
 COPY --from=builder /app/packages/backend/dist ./packages/backend/dist
+
+# Ensure we copy the folder where your schema output is configured
 COPY --from=builder /app/packages/backend/src/generated ./packages/backend/src/generated
 
 # Create non-root user
