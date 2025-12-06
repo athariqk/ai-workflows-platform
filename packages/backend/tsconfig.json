@@ -5,33 +5,20 @@
     "rootDir": "./src",
     "outDir": "./dist",
     "module": "nodenext",
-    "lib": [
-      "ES2023"
-    ],
+    "lib": ["ES2023"],
     "moduleResolution": "nodenext",
     "paths": {
-      "@/*": [
-        "./src/*"
-      ]
+      "@/*": ["./src/*"]
     }
   },
-  "include": [
-    "src/**/*"
-  ],
-  "exclude": [
-    "node_modules",
-    "src/generated/**/*"
-  ],
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "src/generated/**/*"],
   "tsc-alias": {
     "resolveFullPaths": true,
     "replacers": {
       "keepExtension": true
     },
-    "fileExtensions": [
-      "js"
-    ],
-    "exclude": [
-      "**/generated/**/*"
-    ]
+    "fileExtensions": ["js"],
+    "exclude": ["**/generated/**/*"]
   }
 }

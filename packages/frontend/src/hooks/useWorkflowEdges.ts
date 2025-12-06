@@ -1,11 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import {
-  applyEdgeChanges,
-  addEdge,
-  type Edge,
-  type EdgeChange,
-  type Connection,
-} from "@xyflow/react";
+import { applyEdgeChanges, addEdge, type Edge, type EdgeChange, type Connection } from "@xyflow/react";
 import { api } from "@/lib/api";
 import { transformEdgesToReactFlow } from "@/utils/workflowTransformers";
 
@@ -20,9 +14,7 @@ export function useWorkflowEdges(workflowId: string | undefined) {
       api
         .getWorkflowEdges()
         .then((allEdges) => {
-          const workflowEdges = allEdges.filter(
-            (edge) => edge.workflow_id === workflowId
-          );
+          const workflowEdges = allEdges.filter((edge) => edge.workflow_id === workflowId);
           const flowEdges = transformEdgesToReactFlow(workflowEdges);
           setEdges(flowEdges);
         })
@@ -44,7 +36,7 @@ export function useWorkflowEdges(workflowId: string | undefined) {
               cascadeDeletedEdgeIds.current.delete(change.id);
               return;
             }
-            
+
             api.deleteWorkflowEdge(change.id).catch((err) => {
               console.error("Failed to delete workflow edge:", err);
             });
@@ -64,18 +56,14 @@ export function useWorkflowEdges(workflowId: string | undefined) {
 
       setEdges((edgesSnapshot) => {
         // Remove old edge from source (enforce single outgoing edge)
-        const oldEdge = edgesSnapshot.find(
-          (edge) => edge.source === params.source
-        );
+        const oldEdge = edgesSnapshot.find((edge) => edge.source === params.source);
         if (oldEdge) {
           api.deleteWorkflowEdge(oldEdge.id).catch((err) => {
             console.error("Failed to delete old workflow edge:", err);
           });
         }
 
-        const filteredEdges = edgesSnapshot.filter(
-          (edge) => edge.source !== params.source
-        );
+        const filteredEdges = edgesSnapshot.filter((edge) => edge.source !== params.source);
 
         api
           .createWorkflowEdge({
@@ -105,7 +93,7 @@ export function useWorkflowEdges(workflowId: string | undefined) {
 
   // Mark edges as cascade-deleted so onEdgesChange won't try to delete them via API
   const markEdgesAsCascadeDeleted = useCallback((edgeIds: string[]) => {
-    edgeIds.forEach(id => cascadeDeletedEdgeIds.current.add(id));
+    edgeIds.forEach((id) => cascadeDeletedEdgeIds.current.add(id));
   }, []);
 
   return {

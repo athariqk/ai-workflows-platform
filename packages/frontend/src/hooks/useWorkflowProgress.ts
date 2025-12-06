@@ -1,80 +1,201 @@
 import { useEffect, useState, useRef } from "react";
-import { API_BASE_URL, API_KEY } from "@/lib/api";
-import type { WorkflowProgress, WorkflowRun, WorkflowStatus } from "@/types/api";
+import { api, API_BASE_URL, API_KEY } from "@/lib/api";
+import type { RunLog, WorkflowProgress, WorkflowStatus, WorkflowStepProgress } from "@/types/api";
+
+interface WorkflowProgressFromApi {
+  workflowId: string;
+  status: WorkflowStatus;
+  currentStep?: WorkflowStepProgress;
+  error?: string;
+}
 
 export function useWorkflowProgress(
-    currentRun: WorkflowRun | null,
-    onProgress: (progress: WorkflowProgress) => void,
+  workflowIds: string[],
+  onProgressReceived?: (workflowId: string, progress: WorkflowProgress) => void
 ) {
-    const [workflowStatus, setWorkflowStatus] = useState<WorkflowStatus>("idle");
-    const [workflowError, setWorkflowError] = useState<string | null>(null);
-    
-    // Use ref to store latest callback without triggering effect re-runs
-    const onProgressRef = useRef(onProgress);
-    
-    useEffect(() => {
-        onProgressRef.current = onProgress;
-    }, [onProgress]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-    useEffect(() => {
-        if (!currentRun?.job_id) {
-            setWorkflowStatus("idle");
-            return;
+  // Use refs to store latest values without triggering effect re-runs
+  const onProgressReceivedRef = useRef(onProgressReceived);
+  const jobToWorkflowMapRef = useRef<Map<string, string>>(new Map());
+
+  useEffect(() => {
+    onProgressReceivedRef.current = onProgressReceived;
+  }, [onProgressReceived]);
+
+  useEffect(() => {
+    if (workflowIds.length === 0) {
+      jobToWorkflowMapRef.current = new Map();
+      return;
+    }
+
+    let isMounted = true;
+
+    // Initial fetch of latest run statuses
+    async function fetchInitialStatuses() {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const logMap = new Map<string, Partial<RunLog>>();
+        const jobMap = new Map<string, string>();
+
+        await Promise.all(
+          workflowIds.map(async (workflowId) => {
+            try {
+              const response = await api.getRunLogs({
+                workflow_id: workflowId,
+              });
+
+              if (response.length > 0 && response[0]) {
+                const latestRun = response[0];
+
+                logMap.set(workflowId, latestRun);
+
+                // Track job ID to workflow ID mapping for real-time updates
+                if (latestRun.id) {
+                  jobMap.set(latestRun.id, workflowId);
+                }
+
+                // Call callback with initial status
+                if (onProgressReceivedRef.current && latestRun.id && latestRun.status) {
+                  // If there are step logs, send progress for each step
+                  if (latestRun.step_log.length > 0) {
+                    for (const step of latestRun.step_log) {
+                      const currentStep: WorkflowStepProgress | undefined =
+                        step && step.node_id && step.name && step.status
+                          ? {
+                              nodeId: step.node_id,
+                              name: step.name,
+                              status: step.status,
+                              output: step.output as string | undefined,
+                              error: step.error ?? undefined,
+                            }
+                          : undefined;
+
+                      const progress: WorkflowProgress = {
+                        workflowId: workflowId,
+                        runStatus: {
+                          run_id: latestRun.id,
+                          job_id: latestRun.job_id ?? "",
+                          status: latestRun.status,
+                        },
+                        currentStep: currentStep,
+                        error: latestRun.error ?? undefined,
+                      };
+
+                      onProgressReceivedRef.current(workflowId, progress);
+                    }
+                  } else {
+                    // No step logs yet, just send run status
+                    const progress: WorkflowProgress = {
+                      workflowId: workflowId,
+                      runStatus: {
+                        run_id: latestRun.id,
+                        job_id: latestRun.job_id ?? "",
+                        status: latestRun.status,
+                      },
+                      currentStep: undefined,
+                      error: latestRun.error ?? undefined,
+                    };
+
+                    onProgressReceivedRef.current(workflowId, progress);
+                  }
+                }
+              } else {
+                logMap.set(workflowId, {
+                  workflow_id: workflowId,
+                });
+              }
+            } catch (err) {
+              console.error(`Failed to fetch status for workflow ${workflowId}:`, err);
+              logMap.set(workflowId, {
+                workflow_id: workflowId,
+              });
+            }
+          })
+        );
+
+        if (isMounted) {
+          jobToWorkflowMapRef.current = jobMap;
+          setLoading(false);
+        }
+      } catch (err) {
+        if (isMounted) {
+          setError((err as Error).message);
+          setLoading(false);
+        }
+      }
+    }
+
+    fetchInitialStatuses();
+
+    // Set up EventSource for real-time updates
+    const url = new URL("/v1/runner/run-progress", API_BASE_URL);
+    url.searchParams.set("api_key", API_KEY);
+
+    const eventSource = new EventSource(url.toString());
+
+    eventSource.onopen = () => {
+      // EventSource connection opened
+      console.log("EventSource connection opened");
+    };
+
+    eventSource.onmessage = (event) => {
+      try {
+        const message = JSON.parse(event.data);
+        const { jobId, progress: progressWrapper } = message as {
+          jobId: string;
+          progress: {
+            type: string;
+            data: WorkflowProgressFromApi;
+          };
+        };
+        const workflowProgress = progressWrapper.data;
+        const workflowId = jobToWorkflowMapRef.current.get(jobId);
+
+        if (!workflowId || !workflowIds.includes(workflowId)) {
+          // This job doesn't belong to any of our tracked workflows
+          return;
         }
 
-        setWorkflowStatus("idle");
-        setWorkflowError(null);
+        if (onProgressReceivedRef.current) {
+          // Call callback with workflow progress data
+          onProgressReceivedRef.current(workflowId, {
+            workflowId: workflowProgress.workflowId,
+            runStatus: {
+              status: workflowProgress.status,
+              run_id: "",
+              job_id: "",
+            },
+            currentStep: workflowProgress.currentStep,
+            error: workflowProgress.error,
+          });
+        }
+      } catch (err) {
+        console.error("Failed to parse progress event:", err);
+      }
+    };
 
-        const url = new URL("/v1/runner/run-progress", API_BASE_URL);
-        url.searchParams.set("api_key", API_KEY);
+    eventSource.onerror = (error) => {
+      console.error("EventSource error:", error);
+    };
 
-        const eventSource = new EventSource(url.toString());
+    return () => {
+      isMounted = false;
+      console.log("closing EventSource");
+      eventSource.close();
+    };
+  }, [workflowIds.join(",")]);
 
-        eventSource.onopen = () => {
-            // EventSource connection opened
-            console.log("EventSource connection opened")
-        };
+  const registerJob = (jobId: string, workflowId: string) => {
+    jobToWorkflowMapRef.current.set(jobId, workflowId);
+  };
 
-        eventSource.onmessage = (event) => {
-            try {
-                const message = JSON.parse(event.data);
-                const { jobId, progress: progressWrapper } = message as { jobId: string; progress: { type: string; data: WorkflowProgress } };
-                const workflowProgress = progressWrapper.data;
-
-                if (jobId !== currentRun.job_id) {
-                    // Ignore events for other runs
-                    return;
-                }
-
-                // When currentStep is undefined, progress status is interpreted as workflow-wide
-                if (!workflowProgress.currentStep && workflowProgress.status) {
-                    setWorkflowStatus(workflowProgress.status);
-                    if (workflowProgress.status === "failed" && workflowProgress.error) {
-                        setWorkflowError(workflowProgress.error);
-                    }
-                    if (workflowProgress.status === "failed" || workflowProgress.status == "completed") {
-                        // Reached an end state
-                        eventSource.close();
-                    }
-                }
-
-                // Use ref to call latest callback
-                onProgressRef.current(workflowProgress);
-            } catch (err) {
-                console.error("Failed to parse progress event:", err);
-            }
-        };
-
-        eventSource.onerror = (error) => {
-            console.error("EventSource failed:", error);
-            eventSource.close();
-        };
-
-        return () => {
-            console.log("closing EventSource");
-            eventSource.close();
-        };
-    }, [currentRun]);
-
-    return { workflowStatus, workflowError };
+  return {
+    loading,
+    error,
+    registerJob,
+  };
 }

@@ -6,7 +6,7 @@ interface WorkflowHeaderProps {
   loading: boolean;
   error: string | null;
   currentRun: WorkflowRun | null;
-  workflowStatus: WorkflowStatus;
+  workflowStatus?: WorkflowStatus;
   workflowError: string | null;
 }
 
@@ -19,8 +19,7 @@ export function WorkflowHeader({
   workflowError,
 }: WorkflowHeaderProps) {
   const getStatusIndicator = () => {
-    if (!currentRun)
-      return null;
+    if (!currentRun) return null;
 
     switch (workflowStatus) {
       case "completed":
@@ -29,7 +28,7 @@ export function WorkflowHeader({
             <CheckCircle2 size={20} />
             <span className="text-sm font-medium">Completed</span>
           </div>
-      );
+        );
       case "failed":
         return (
           <div className="flex items-center gap-2 text-red-600">
@@ -40,10 +39,10 @@ export function WorkflowHeader({
       case "running":
         return (
           <div className="flex items-center gap-2 text-indigo-600">
-        <Loader2 size={20} className="animate-spin" />
-        <span className="text-sm font-medium">Running</span>
-      </div>
-        )
+            <Loader2 size={20} className="animate-spin" />
+            <span className="text-sm font-medium">Running</span>
+          </div>
+        );
     }
 
     return null;
@@ -63,9 +62,7 @@ export function WorkflowHeader({
       ) : workflow ? (
         <>
           <div className="flex flex-row items-center gap-4">
-            <h2 className="text-2xl font-medium text-slate-800">
-              {workflow.name}
-            </h2>
+            <h2 className="text-2xl font-medium text-slate-800">{workflow.name}</h2>
             {getStatusIndicator()}
           </div>
           {workflowError && workflowStatus === "failed" && (
@@ -76,12 +73,8 @@ export function WorkflowHeader({
         </>
       ) : (
         <div>
-          <h2 className="text-2xl font-medium text-slate-800">
-            Workflow Builder
-          </h2>
-          <p className="text-sm text-slate-500 mt-1">
-            Select a workflow to edit
-          </p>
+          <h2 className="text-2xl font-medium text-slate-800">Workflow Builder</h2>
+          <p className="text-sm text-slate-500 mt-1">Select a workflow to edit</p>
         </div>
       )}
     </header>

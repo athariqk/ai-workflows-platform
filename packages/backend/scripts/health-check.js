@@ -4,15 +4,15 @@
  * Checks backend API availability
  */
 
-import http from 'http';
-import process from 'process';
-import console from 'console';
+import http from "http";
+import process from "process";
+import console from "console";
 
 const options = {
-  hostname: 'localhost',
+  hostname: "localhost",
   port: process.env.PORT || 3000,
-  path: '/health',
-  method: 'GET',
+  path: "/health",
+  method: "GET",
   timeout: 5000,
 };
 
@@ -25,13 +25,13 @@ const req = http.request(options, (res) => {
   }
 });
 
-req.on('error', (error) => {
-  console.error('Health check request failed:', error.message);
+req.on("error", (error) => {
+  console.error("Health check request failed:", error.message);
   process.exit(1);
 });
 
-req.on('timeout', () => {
-  console.error('Health check request timed out');
+req.on("timeout", () => {
+  console.error("Health check request timed out");
   req.destroy();
   process.exit(1);
 });

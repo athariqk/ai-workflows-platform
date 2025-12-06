@@ -1,8 +1,8 @@
-import express from "express"
-import uuidv7 from "@/lib/uuid-v7.js"
-import { prisma } from "@/lib/prisma.js"
-import { PrismaClientKnownRequestError } from "@prisma/client/runtime/client"
-import { BadRequest, NotFound } from "@/lib/http-error.js"
+import express from "express";
+import uuidv7 from "@/lib/uuid-v7.js";
+import { prisma } from "@/lib/prisma.js";
+import { PrismaClientKnownRequestError } from "@prisma/client/runtime/client";
+import { BadRequest, NotFound } from "@/lib/http-error.js";
 
 /**
  * @openapi
@@ -47,7 +47,7 @@ import { BadRequest, NotFound } from "@/lib/http-error.js"
  *         - workflow_id
  */
 
-const router = express.Router()
+const router = express.Router();
 
 /**
  * @openapi
@@ -68,14 +68,14 @@ const router = express.Router()
  *               items:
  *                 $ref: '#/components/schemas/WorkflowEdge'
  */
-router.get('/', async (req, res, next) => {
+router.get("/", async (req, res, next) => {
   try {
-    const list = await prisma.workflow_edge.findMany()
-    res.json(list)
+    const list = await prisma.workflow_edge.findMany();
+    res.json(list);
   } catch (err) {
-    next(err)
+    next(err);
   }
-})
+});
 
 /**
  * @openapi
@@ -104,16 +104,16 @@ router.get('/', async (req, res, next) => {
  *       404:
  *         $ref: '#/components/responses/NotFound'
  */
-router.get('/:id', async (req, res, next) => {
+router.get("/:id", async (req, res, next) => {
   try {
-    const { id } = req.params
-    const item = await prisma.workflow_edge.findUnique({ where: { id } })
-    if (!item) throw NotFound('Workflow edge not found')
-    res.json(item)
+    const { id } = req.params;
+    const item = await prisma.workflow_edge.findUnique({ where: { id } });
+    if (!item) throw NotFound("Workflow edge not found");
+    res.json(item);
   } catch (err) {
-    next(err)
+    next(err);
   }
-})
+});
 
 /**
  * @openapi
@@ -140,20 +140,20 @@ router.get('/:id', async (req, res, next) => {
  *       400:
  *         $ref: '#/components/responses/BadRequest'
  */
-router.post('/', async (req, res, next) => {
+router.post("/", async (req, res, next) => {
   try {
-    const { workflow_id, source_node_id = null, target_node_id = null } = req.body
-    if (!workflow_id) throw BadRequest('workflow_id is required')
+    const { workflow_id, source_node_id = null, target_node_id = null } = req.body;
+    if (!workflow_id) throw BadRequest("workflow_id is required");
 
     const created = await prisma.workflow_edge.create({
       data: { id: uuidv7(), workflow_id, source_node_id, target_node_id },
-    })
+    });
 
-    res.status(201).json(created)
+    res.status(201).json(created);
   } catch (err) {
-    next(err)
+    next(err);
   }
-})
+});
 
 /**
  * @openapi
@@ -188,23 +188,22 @@ router.post('/', async (req, res, next) => {
  *       404:
  *         $ref: '#/components/responses/NotFound'
  */
-router.put('/:id', async (req, res, next) => {
+router.put("/:id", async (req, res, next) => {
   try {
-    const { id } = req.params
-    const { workflow_id, source_node_id, target_node_id } = req.body
+    const { id } = req.params;
+    const { workflow_id, source_node_id, target_node_id } = req.body;
 
     const updated = await prisma.workflow_edge.update({
       where: { id },
       data: { workflow_id, source_node_id, target_node_id },
-    })
+    });
 
-    res.json(updated)
+    res.json(updated);
   } catch (err) {
-    if ((err as PrismaClientKnownRequestError).code === 'P2025')
-      throw NotFound('Workflow edge not found')
-    next(err)
+    if ((err as PrismaClientKnownRequestError).code === "P2025") throw NotFound("Workflow edge not found");
+    next(err);
   }
-})
+});
 
 /**
  * @openapi
@@ -229,16 +228,15 @@ router.put('/:id', async (req, res, next) => {
  *       404:
  *         $ref: '#/components/responses/NotFound'
  */
-router.delete('/:id', async (req, res, next) => {
+router.delete("/:id", async (req, res, next) => {
   try {
-    const { id } = req.params
-    await prisma.workflow_edge.delete({ where: { id } })
-    res.status(204).send()
+    const { id } = req.params;
+    await prisma.workflow_edge.delete({ where: { id } });
+    res.status(204).send();
   } catch (err) {
-    if ((err as PrismaClientKnownRequestError).code === 'P2025')
-      throw NotFound('Workflow edge not found')
-    next(err)
+    if ((err as PrismaClientKnownRequestError).code === "P2025") throw NotFound("Workflow edge not found");
+    next(err);
   }
-})
+});
 
-export default router
+export default router;

@@ -11,9 +11,9 @@ export type AgentNodeData = Node<{
   label?: string;
   status?: NodeStatus;
   [key: string]: unknown; // Allow any config fields
-}>
+}>;
 
-export default function AgentNode({ data }: NodeProps<AgentNodeData>) {  
+export default function AgentNode({ data }: NodeProps<AgentNodeData>) {
   const modelColors: Record<ModelType, string> = {
     gemini_2_5_flash: "bg-blue-500",
     gpt_5_mini: "bg-green-500",
@@ -22,7 +22,7 @@ export default function AgentNode({ data }: NodeProps<AgentNodeData>) {
 
   // Extract agent from data (full config)
   const agent = data.agent;
-  
+
   if (!agent) {
     return (
       <WorkflowNode status={data.status}>
@@ -42,12 +42,8 @@ export default function AgentNode({ data }: NodeProps<AgentNodeData>) {
           <div className="text-xs text-slate-500 capitalize">{agent.model}</div>
         </div>
       </div>
-      
-      {agent.system_prompt && (
-        <div className="mt-2 text-xs text-slate-600 line-clamp-2">
-          {agent.system_prompt}
-        </div>
-      )}
+
+      {agent.system_prompt && <div className="mt-2 text-xs text-slate-600 line-clamp-2">{agent.system_prompt}</div>}
     </WorkflowNode>
   );
 }

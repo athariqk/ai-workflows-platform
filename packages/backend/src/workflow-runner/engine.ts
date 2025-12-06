@@ -51,14 +51,13 @@ async function buildWorkflowChain(workflowId: string): Promise<WorkflowChain> {
     throw new Error("Workflow chain has no start node");
   }
 
-  const chain: WorkflowChain = { data: [] }
+  const chain: WorkflowChain = { data: [] };
   let currentNode = startNodes[0];
   while (currentNode) {
     let step: Step;
 
     const config = currentNode.config as Record<string, unknown> | null;
-    if (!config)
-      continue;
+    if (!config) continue;
 
     //  config structure:
     //  {
@@ -71,21 +70,19 @@ async function buildWorkflowChain(workflowId: string): Promise<WorkflowChain> {
     }
 
     switch (type) {
-      case 'agent':
-        {
-          const agent = config.agent as { id: string } | null;
-          if (!agent?.id) {
-            throw new Error(`Agent node ${currentNode.id} is missing a config`);
-          }
-          step = new AgentStep(agent.id);
-          break;
+      case "agent": {
+        const agent = config.agent as { id: string } | null;
+        if (!agent?.id) {
+          throw new Error(`Agent node ${currentNode.id} is missing a config`);
         }
-      case 'text_input':
-        {
-          const value = config.value as string | null;
-          step = new TextInputStep(value || "")
-          break;
-        }
+        step = new AgentStep(agent.id);
+        break;
+      }
+      case "text_input": {
+        const value = config.value as string | null;
+        step = new TextInputStep(value || "");
+        break;
+      }
       default:
         throw new Error(`Unsupported node type in workflow chain: ${type}`);
     }
@@ -98,7 +95,7 @@ async function buildWorkflowChain(workflowId: string): Promise<WorkflowChain> {
     });
 
     const nextId = nodeMap.get(currentNode.id);
-    currentNode = nextId ? nodes.find((n: { id: string; }) => n.id === nextId) : undefined;
+    currentNode = nextId ? nodes.find((n: { id: string }) => n.id === nextId) : undefined;
   }
 
   return chain;
@@ -110,7 +107,7 @@ async function buildWorkflowChain(workflowId: string): Promise<WorkflowChain> {
 async function executeWorkflow(
   job: Job<WorkflowJobData>,
   chain: WorkflowChain,
-  context: ExecutionContext,
+  context: ExecutionContext
 ): Promise<void> {
   for (const currentNode of chain.data) {
     const stepLogId = uuidv7();
@@ -134,10 +131,10 @@ async function executeWorkflow(
       reportProgress(job, "workflow_progress", {
         workflowId: context.workflowId,
         currentStep: {
-          id: currentNode.id,
+          nodeId: currentNode.id,
           name: currentNode.step.name,
-          status: "running"
-        }
+          status: "running",
+        },
       } as WorkflowProgress);
 
       // Execute the step
@@ -159,11 +156,11 @@ async function executeWorkflow(
       reportProgress(job, "workflow_progress", {
         workflowId: context.workflowId,
         currentStep: {
-          id: currentNode.id,
+          nodeId: currentNode.id,
           name: currentNode.step.name,
           status: "completed",
-          output: output
-        }
+          output: output,
+        },
       } as WorkflowProgress);
     } catch (error) {
       // Update step log with failure
@@ -178,11 +175,11 @@ async function executeWorkflow(
 
       reportProgress(job, "workflow_progress", {
         currentStep: {
-          id: currentNode.id,
+          nodeId: currentNode.id,
           name: currentNode.step.name,
           status: "failed",
-          error: (error as Error).message
-        }
+          error: (error as Error).message,
+        },
       } as WorkflowProgress);
       throw error;
     }
@@ -193,7 +190,7 @@ async function executeWorkflow(
  * Main workflow execution handler
  */
 export async function executeWorkflowJob(
-  job: Job<WorkflowJobData>,
+  job: Job<WorkflowJobData>
 ): Promise<{ success: boolean; runId: string; error: string | null }> {
   const { workflowId, runId } = job.data;
 
@@ -208,7 +205,7 @@ export async function executeWorkflowJob(
 
     reportProgress(job, "workflow_progress", {
       workflowId: workflowId,
-      status: "running"
+      status: "running",
     } as WorkflowProgress);
 
     // Build workflow graph
@@ -233,7 +230,7 @@ export async function executeWorkflowJob(
 
     reportProgress(job, "workflow_progress", {
       workflowId: workflowId,
-      status: "completed"
+      status: "completed",
     } as WorkflowProgress);
 
     return { success: true, runId, error: null };

@@ -1,6 +1,82 @@
-# Quick Reference - Deployment Commands
+# Quick Reference - Developer Cheatsheet
 
-## Initial Setup
+## Development Commands
+
+### Start Development Environment
+
+```bash
+# From repository root
+npm install           # Install all dependencies
+npm run dev           # Run both frontend + backend + Docker services
+npm run dev:be        # Backend only (port 3000)
+npm run dev:fe        # Frontend only (port 4000)
+```
+
+**Access Points:**
+
+- Frontend: http://localhost:4000
+- Backend API: http://localhost:3000
+- API Docs: http://localhost:3000/v1/api-docs
+- Dev DB: localhost:5433 (PostgreSQL)
+- Redis: localhost:6379
+
+### Testing
+
+```bash
+npm run test              # Run all tests
+npm run test:unit         # Backend unit tests only
+npm run test:integration  # Backend integration tests (starts Docker)
+npm run lint              # ESLint check
+npm run lint:fix          # Auto-fix linting issues
+```
+
+### Database Operations
+
+```bash
+cd packages/backend
+
+# After schema changes
+npx prisma generate       # Regenerate Prisma client
+npx prisma db push        # Push schema to dev DB (no migration)
+
+# Development migrations (for production)
+npx prisma migrate dev --name your_migration_name
+
+# View database in GUI
+npx prisma studio
+```
+
+**Important:** Run `npx prisma generate` after pulling schema changes!
+
+### Common Workflows
+
+**Add New Workflow Node Type:**
+
+1. Edit `packages/backend/prisma/schema.prisma` (add enum value if needed)
+2. `npx prisma generate` (regenerate client)
+3. Create step class: `packages/backend/src/workflow-runner/steps/new-step.ts`
+4. Extend `Step` abstract class, implement `execute(input)`
+5. Update `packages/backend/src/workflow-runner/engine.ts` switch statement
+6. Create frontend component: `packages/frontend/src/components/nodes/NewNode.tsx`
+7. Register in `nodeTypeRegistry` (`workflowTransformers.ts`)
+
+**Debug EventSource Issues:**
+
+```typescript
+// Check browser console for:
+console.log("EventSource connection opened");
+console.log("EventSource failed:", error);
+
+// Backend: Watch queue events
+workflowQueue.on("job progress", (jobId, progress) => {
+  console.log("Progress:", jobId, progress);
+});
+```
+
+## Production Deployment
+
+### Initial Setup
+
 ```bash
 # 1. Configure environment
 cp .env.production.example .env.production
@@ -12,6 +88,7 @@ bash deploy.sh         # Linux/Mac
 ```
 
 ## Service Management
+
 ```bash
 # Start all services
 docker-compose up -d
@@ -31,6 +108,7 @@ docker-compose down -v
 ```
 
 ## Logs & Monitoring
+
 ```bash
 # View all logs (follow mode)
 docker-compose logs -f
@@ -49,6 +127,7 @@ docker-compose logs > deployment-logs.txt
 ```
 
 ## Database Operations
+
 ```bash
 # Run migrations
 docker-compose exec backend node scripts/migrate-deploy.js
@@ -67,6 +146,7 @@ docker-compose exec postgres psql -U postgres -c "SELECT pg_size_pretty(pg_datab
 ```
 
 ## Redis Operations
+
 ```bash
 # Access Redis CLI
 docker-compose exec redis redis-cli
@@ -82,6 +162,7 @@ docker-compose exec redis redis-cli FLUSHALL
 ```
 
 ## Health Checks
+
 ```bash
 # Backend health
 curl http://localhost:3000/health
@@ -94,6 +175,7 @@ docker-compose ps | grep -E "healthy|Up"
 ```
 
 ## Updates & Rebuilds
+
 ```bash
 # Pull latest code
 git pull origin main
@@ -110,6 +192,7 @@ docker-compose up -d
 ```
 
 ## Container Management
+
 ```bash
 # Enter backend container shell
 docker-compose exec backend sh
@@ -125,6 +208,7 @@ docker stats
 ```
 
 ## Cleanup
+
 ```bash
 # Remove stopped containers
 docker container prune
@@ -140,8 +224,51 @@ docker system prune -a
 ```
 
 ## Troubleshooting
+
+### Development Issues
+
+**"Prisma Client not found":**
+
 ```bash
-# View container inspect details
+cd packages/backend
+npx prisma generate
+npm run dev:be
+```
+
+**"EventSource keeps reconnecting":**
+
+- Check for callbacks in `useEffect` dependencies
+- Use `useRef` pattern for callbacks (see docs/DESIGN_DECISIONS.md)
+
+**"MaxListenersExceededWarning":**
+
+- EventSource listeners not cleaned up
+- Ensure named handler + `removeListener()` on disconnect
+
+**"Database connection failed":**
+
+- Check `DATABASE_URL` has no quotes in `.env`
+- Correct format: `postgresql://user:pass@localhost:5433/postgres`
+- Verify Docker containers running: `docker ps`
+
+**"Workflow execution stuck":**
+
+```bash
+# Check Redis queue
+docker-compose exec redis redis-cli LLEN workflow-execution
+
+# View backend logs
+docker-compose logs -f backend
+
+# Check run_log status
+docker-compose exec postgres psql -U postgres -c "SELECT * FROM run_log ORDER BY started_at DESC LIMIT 5;"
+```
+
+### Production Issues
+
+**Container inspect:**
+
+```bash
 docker-compose ps
 docker inspect <container_id>
 
@@ -156,7 +283,19 @@ docker-compose exec backend env | grep DATABASE_URL
 docker-compose down && docker-compose up -d && docker-compose logs -f
 ```
 
+**Build failures:**
+
+```bash
+# Ensure Prisma generates before TypeScript compilation
+docker-compose build --no-cache backend
+
+# Check Dockerfile has:
+# RUN npx prisma generate  # BEFORE npm run build
+# RUN npm run build
+```
+
 ## Development vs Production
+
 ```bash
 # Development (with hot reload)
 npm run dev
@@ -170,13 +309,99 @@ docker-compose up -d
 ```
 
 ## Port Reference
+
 - **Frontend**: 80 (production) / 4000 (development)
 - **Backend**: 3000
-- **PostgreSQL**: 5432 (production) / 5433 (development)
+- **PostgreSQL**: 5432 (production) / 5433 (development) / 5433 (test)
 - **Redis**: 6379
 - **API Docs**: http://localhost:3000/v1/api-docs
 
+## Key Architecture Patterns
+
+### Real-Time Progress (EventSource)
+
+**Backend** (`/v1/runner/run-progress`):
+
+```typescript
+const progressHandler = (jobId, progress) => {
+  res.write(`data: ${JSON.stringify({ jobId, progress })}\n\n`);
+};
+workflowQueue.on("job progress", progressHandler);
+
+res.on("close", () => {
+  workflowQueue.removeListener("job progress", progressHandler); // Prevent leak
+});
+```
+
+**Frontend** (useRef pattern):
+
+```typescript
+const onProgressRef = useRef(onProgressCallback);
+const jobMapRef = useRef(new Map());
+
+useEffect(() => {
+  onProgressRef.current = onProgressCallback; // Update ref, not deps
+}, [onProgressCallback]);
+
+useEffect(() => {
+  const eventSource = new EventSource(url);
+  eventSource.onmessage = (event) => {
+    const { jobId, progress } = JSON.parse(event.data);
+    const workflowId = jobMapRef.current.get(jobId);
+    onProgressRef.current?.(workflowId, progress.data); // Unwrap .data
+  };
+  return () => eventSource.close();
+}, []); // Empty deps - runs once
+```
+
+**Why this pattern?**
+
+- Callbacks in deps → effect re-runs → EventSource reopens (bad)
+- Refs hold latest values → effect runs once → stable connection (good)
+
+### Node Config Pass-Through
+
+**Database → ReactFlow:**
+
+```typescript
+// workflow_node.config (JSONB) → ReactFlow node.data (direct pass-through)
+const reactFlowNode = {
+  id: dbNode.id,
+  type: getReactFlowNodeType(dbConfig.type),
+  position: dbConfig.position,
+  data: dbConfig, // Single source of truth
+};
+```
+
+**Updates:**
+
+```typescript
+// Preserve entire config when updating
+const updatedConfig = { ...node.data, ...updates };
+api.updateWorkflowNode(nodeId, { config: updatedConfig });
+```
+
+### Error Handling
+
+**Backend:**
+
+```typescript
+import { BadRequest, NotFound } from "@/lib/http-error";
+throw BadRequest("workflow_id required"); // Returns 400 JSON
+```
+
+**Frontend:**
+
+```typescript
+try {
+  await api.runWorkflow(workflowId, jobId);
+} catch (err) {
+  console.error("Run failed:", (err as Error).message);
+}
+```
+
 ## Emergency Procedures
+
 ```bash
 # Quick restart all services
 docker-compose restart
@@ -193,6 +418,7 @@ docker-compose up -d
 ```
 
 ## Performance Monitoring
+
 ```bash
 # Real-time container stats
 docker stats
@@ -208,6 +434,7 @@ docker network inspect awp_awp-network
 ```
 
 ## CI/CD Integration
+
 ```bash
 # Check CI/CD status
 gh run list  # GitHub CLI
@@ -220,6 +447,7 @@ gh run rerun <run-id>
 ```
 
 ## Security
+
 ```bash
 # Scan images for vulnerabilities
 docker scan awp-backend-prod

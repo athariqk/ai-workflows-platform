@@ -62,7 +62,7 @@ export function WorkflowCanvas({
       const nodeToDelete = nodes.find((n) => n.id === nodeId);
       if (nodeToDelete) {
         onNodesDelete([nodeToDelete]);
-        onNodesChange([{ type: 'remove', id: nodeId }]);
+        onNodesChange([{ type: "remove", id: nodeId }]);
       }
       setMenu(null);
       setSelectedNode(null);
@@ -95,11 +95,9 @@ export function WorkflowCanvas({
         };
 
         // Send away!!
-        api
-          .updateWorkflowNode(nodeId, { config: updatedConfig })
-          .catch((err) => {
-            console.error("Failed to update node:", err);
-          });
+        api.updateWorkflowNode(nodeId, { config: updatedConfig }).catch((err) => {
+          console.error("Failed to update node:", err);
+        });
       }
     },
     [nodes, onNodesChange, workflowId]
@@ -134,10 +132,8 @@ export function WorkflowCanvas({
         id: node.id,
         top: relativeY < pane.height - 200 ? relativeY : undefined,
         left: relativeX < pane.width - 200 ? relativeX : undefined,
-        right:
-          relativeX >= pane.width - 200 ? pane.width - relativeX : undefined,
-        bottom:
-          relativeY >= pane.height - 200 ? pane.height - relativeY : undefined,
+        right: relativeX >= pane.width - 200 ? pane.width - relativeX : undefined,
+        bottom: relativeY >= pane.height - 200 ? pane.height - relativeY : undefined,
       });
     },
     [setMenu]

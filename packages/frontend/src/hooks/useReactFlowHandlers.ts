@@ -39,10 +39,7 @@ export function useReactFlowHandlers(
         y: event.clientY,
       });
 
-      const nodeConfig = createNodeConfig(
-        draggableData.data,
-        position
-      );
+      const nodeConfig = createNodeConfig(draggableData.data, position);
 
       api
         .createWorkflowNode({
@@ -68,23 +65,20 @@ export function useReactFlowHandlers(
     [screenToFlowPosition, workflowId, setNodes, setEdges]
   );
 
-  const onDragStart = useCallback(
-    (event: DragEvent, data: Record<string, unknown>) => {
-      const type = (data as { type?: StepType })?.type;
-      if (!type) {
-        console.error("Node type is required for drag operation");
-        return;
-      }
-      const reactFlowNodeType = getReactFlowNodeType(type);
-      const draggableData: DraggableNodeData = {
-        reactFlowNodeType,
-        data,
-      };
-      event.dataTransfer.setData("application/reactflow", JSON.stringify(draggableData));
-      event.dataTransfer.effectAllowed = "move";
-    },
-    []
-  );
+  const onDragStart = useCallback((event: DragEvent, data: Record<string, unknown>) => {
+    const type = (data as { type?: StepType })?.type;
+    if (!type) {
+      console.error("Node type is required for drag operation");
+      return;
+    }
+    const reactFlowNodeType = getReactFlowNodeType(type);
+    const draggableData: DraggableNodeData = {
+      reactFlowNodeType,
+      data,
+    };
+    event.dataTransfer.setData("application/reactflow", JSON.stringify(draggableData));
+    event.dataTransfer.effectAllowed = "move";
+  }, []);
 
   return {
     onDragOver,

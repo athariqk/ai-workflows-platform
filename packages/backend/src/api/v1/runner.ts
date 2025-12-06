@@ -1,13 +1,13 @@
-import express from "express"
-import { workflowQueue } from "@/lib/queue.js"
-import { WorkflowJobData } from "@/lib/types.js"
-import { prisma } from "@/lib/prisma.js"
-import uuidv7 from "@/lib/uuid-v7.js"
-import { BadRequest, NotFound } from "@/lib/http-error.js"
-import { run_logWhereInput } from "@/generated/prisma/internal/prismaNamespace.js"
-import { execution_status_type } from "@/generated/prisma/enums.js"
+import express from "express";
+import { workflowQueue } from "@/lib/queue.js";
+import { WorkflowJobData } from "@/lib/types.js";
+import { prisma } from "@/lib/prisma.js";
+import uuidv7 from "@/lib/uuid-v7.js";
+import { BadRequest, NotFound } from "@/lib/http-error.js";
+import { run_logWhereInput } from "@/generated/prisma/internal/prismaNamespace.js";
+import { execution_status_type } from "@/generated/prisma/enums.js";
 
-const router = express.Router()
+const router = express.Router();
 
 /**
  * @openapi
@@ -133,84 +133,79 @@ const router = express.Router()
  *         $ref: '#/components/responses/NotFound'
  */
 router.post("/run", async (req, res, next) => {
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
 
-    try {
-        const { workflow_id, job_id } = req.body;
-        if (!workflow_id) {
-            throw BadRequest("workflow_id is required");
-        }
-        if (!job_id) {
-            throw BadRequest("job_id is required");
-        }
-
-        const workflow = await prisma.workflow.findUnique({
-            where: { id: workflow_id },
-        });
-
-        if (!workflow) {
-            throw NotFound("Workflow not found");
-        }
-
-        const runId = uuidv7();
-        await prisma.run_log.create({
-            data: {
-                id: runId,
-                workflow_id,
-                job_id: job_id,
-                status: "pending",
-            },
-        });
-
-        const jobData: WorkflowJobData = {
-            workflowId: workflow_id,
-            runId,
-        };
-
-        const job = await workflowQueue.createJob(jobData)
-            .setId(job_id)
-            .retries(3)
-            .backoff('fixed', 8000)
-            .save();
-
-        res.status(201).json({
-            run_id: runId,
-            job_id: job.id,
-            status: job.status,
-        });
-    } catch (err) {
-        next(err);
+  try {
+    const { workflow_id, job_id } = req.body;
+    if (!workflow_id) {
+      throw BadRequest("workflow_id is required");
     }
+    if (!job_id) {
+      throw BadRequest("job_id is required");
+    }
+
+    const workflow = await prisma.workflow.findUnique({
+      where: { id: workflow_id },
+    });
+
+    if (!workflow) {
+      throw NotFound("Workflow not found");
+    }
+
+    const runId = uuidv7();
+    await prisma.run_log.create({
+      data: {
+        id: runId,
+        workflow_id,
+        job_id: job_id,
+        status: "pending",
+      },
+    });
+
+    const jobData: WorkflowJobData = {
+      workflowId: workflow_id,
+      runId,
+    };
+
+    const job = await workflowQueue.createJob(jobData).setId(job_id).retries(3).backoff("fixed", 8000).save();
+
+    res.status(201).json({
+      run_id: runId,
+      job_id: job.id,
+      status: job.status,
+    });
+  } catch (err) {
+    next(err);
+  }
 });
 
 router.get("/run-progress", async (req, res, next) => {
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
 
-    try {
-        const progressHandler = (jobId: string, progress: unknown) => {
-            if ((progress as { type?: string }).type !== "workflow_progress")
-                return;
-            const data = {
-                jobId: jobId,
-                progress: progress 
-            }
-            res.write("data: " + JSON.stringify(data) + "\n\n");
-        };
+  try {
+    const progressHandler = (jobId: string, progress: unknown) => {
+      if ((progress as { type?: string }).type !== "workflow_progress") return;
+      const data = {
+        jobId: jobId,
+        progress: progress,
+      };
+      res.write("data: " + JSON.stringify(data) + "\n\n");
+    };
 
-        workflowQueue.on("job progress", progressHandler);
+    workflowQueue.on("job progress", progressHandler);
 
-        res.on("close", () => {
-            workflowQueue.removeListener("job progress", progressHandler);
-            res.end();
-        });
-    } catch (err) {
-        next(err);
-    }
-})
+    res.on("close", () => {
+      workflowQueue.removeListener("job progress", progressHandler);
+      res.end();
+    });
+  } catch (err) {
+    next(err);
+  }
+});
 
 /**
  * @openapi
@@ -241,28 +236,28 @@ router.get("/run-progress", async (req, res, next) => {
  *         $ref: '#/components/responses/NotFound'
  */
 router.get("/status/:run_id", async (req, res, next) => {
-    try {
-        const { run_id } = req.params;
+  try {
+    const { run_id } = req.params;
 
-        const runLog = await prisma.run_log.findUnique({
-            where: { id: run_id },
-            include: {
-                step_log: {
-                    orderBy: {
-                        started_at: 'asc',
-                    },
-                },
-            },
-        });
+    const runLog = await prisma.run_log.findUnique({
+      where: { id: run_id },
+      include: {
+        step_log: {
+          orderBy: {
+            started_at: "asc",
+          },
+        },
+      },
+    });
 
-        if (!runLog) {
-            throw NotFound("Run not found");
-        }
-
-        res.json(runLog);
-    } catch (err) {
-        next(err);
+    if (!runLog) {
+      throw NotFound("Run not found");
     }
+
+    res.json(runLog);
+  } catch (err) {
+    next(err);
+  }
 });
 
 /**
@@ -303,49 +298,49 @@ router.get("/status/:run_id", async (req, res, next) => {
  *         $ref: '#/components/responses/BadRequest'
  */
 router.get("/runs", async (req, res, next) => {
-    try {
-        const { workflow_id, status } = req.query;
+  try {
+    const { workflow_id, status } = req.query;
 
-        // Build where clause
-        const where: run_logWhereInput = {};
-        
-        if (workflow_id) {
-            where.workflow_id = workflow_id as string;
-        }
+    // Build where clause
+    const where: run_logWhereInput = {};
 
-        if (status) {
-            if (!['pending', 'running', 'completed', 'failed'].includes(status as string)) {
-                throw BadRequest("status must be one of: pending, running, completed, failed");
-            }
-            where.status = status as execution_status_type;
-        }
-
-        // Get data
-        const data = await prisma.run_log.findMany({
-            where,
-            orderBy: {
-                started_at: 'desc',
-            },
-            include: {
-                workflow: {
-                    select: {
-                        id: true,
-                        name: true,
-                        description: true,
-                    },
-                },
-                step_log: {
-                    orderBy: {
-                        started_at: 'asc',
-                    },
-                },
-            },
-        });
-
-        res.json(data);
-    } catch (err) {
-        next(err);
+    if (workflow_id) {
+      where.workflow_id = workflow_id as string;
     }
+
+    if (status) {
+      if (!["pending", "running", "completed", "failed"].includes(status as string)) {
+        throw BadRequest("status must be one of: pending, running, completed, failed");
+      }
+      where.status = status as execution_status_type;
+    }
+
+    // Get data
+    const data = await prisma.run_log.findMany({
+      where,
+      orderBy: {
+        started_at: "desc",
+      },
+      include: {
+        workflow: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+          },
+        },
+        step_log: {
+          orderBy: {
+            started_at: "asc",
+          },
+        },
+      },
+    });
+
+    res.json(data);
+  } catch (err) {
+    next(err);
+  }
 });
 
-export default router
+export default router;

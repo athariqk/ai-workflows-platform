@@ -1,9 +1,9 @@
-import { createFileRoute, Navigate } from '@tanstack/react-router'
+import { createFileRoute } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/')({
-  component: IndexPage,
+  component: RouteComponent,
 })
 
-function IndexPage() {
-  return <Navigate to="/dashboard/workflows" />
+function RouteComponent() {
+  return <div>Hello "/"!</div>
 }

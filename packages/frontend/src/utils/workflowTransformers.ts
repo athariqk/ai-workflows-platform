@@ -4,15 +4,12 @@ import type { Agent, WorkflowEdge, WorkflowNode, StepType } from "@/types/api";
 interface NodeTypeConfig {
   reactFlowType: string;
   createReactFlowNode: (node: WorkflowNode) => Node;
-  createConfig: (
-    data: Record<string, unknown>,
-    position: { x: number; y: number }
-  ) => Record<string, unknown>;
+  createConfig: (data: Record<string, unknown>, position: { x: number; y: number }) => Record<string, unknown>;
 }
 
 /**
  * Maps DB types to ReactFlow types and handles transformations
-*/
+ */
 const nodeTypeRegistry: Record<StepType, NodeTypeConfig> = {
   agent: {
     reactFlowType: "agentNode",
@@ -78,9 +75,7 @@ const nodeTypeRegistry: Record<StepType, NodeTypeConfig> = {
   },
 };
 
-export function transformNodesToReactFlow(
-  nodes: WorkflowNode[],
-): Node[] {
+export function transformNodesToReactFlow(nodes: WorkflowNode[]): Node[] {
   return nodes.map((node) => {
     const stepType = (node.config as { type?: StepType } | null)?.type;
     if (!stepType) {
@@ -146,10 +141,7 @@ export function getReactFlowNodeType(stepType: StepType): string {
   return config.reactFlowType;
 }
 
-export function updateNodePosition(
-  node: Node,
-  position: { x: number; y: number }
-): Record<string, unknown> {
+export function updateNodePosition(node: Node, position: { x: number; y: number }): Record<string, unknown> {
   // node.data contains the full config, just update position
   return {
     ...node.data,

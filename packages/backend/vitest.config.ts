@@ -1,5 +1,5 @@
-import { defineProject, mergeConfig } from 'vitest/config'
-import { sharedConfig } from '@repo/vitest-config';
+import { defineProject, mergeConfig } from "vitest/config";
+import { sharedConfig } from "@repo/vitest-config";
 
 export default mergeConfig(
   sharedConfig,
@@ -8,17 +8,17 @@ export default mergeConfig(
       projects: [
         {
           test: {
-            name: 'unit',
-            include: ['**/*.unit.test.ts'],
-          }
+            name: "unit",
+            include: ["**/*.unit.test.ts"],
+          },
         },
         {
           test: {
-            name: 'integration',
-            include: ['**/*.int.test.ts'],
-          }
-        }
-      ]
-    }
+            name: "integration",
+            include: ["**/*.int.test.ts"],
+          },
+        },
+      ],
+    },
   })
-)
+);

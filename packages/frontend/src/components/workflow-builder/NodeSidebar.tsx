@@ -6,10 +6,7 @@ import type { LucideIcon } from "lucide-react";
 interface NodeSidebarProps {
   agents: Agent[];
   agentsLoading: boolean;
-  onDragStart: (
-    event: DragEvent,
-    data: Record<string, unknown>
-  ) => void;
+  onDragStart: (event: DragEvent, data: Record<string, unknown>) => void;
 }
 
 // Node definition (unified structure for all node types)
@@ -22,11 +19,7 @@ interface NodeDefinition {
   data: Record<string, unknown>;
 }
 
-export function NodeSidebar({
-  agents,
-  agentsLoading,
-  onDragStart,
-}: NodeSidebarProps) {
+export function NodeSidebar({ agents, agentsLoading, onDragStart }: NodeSidebarProps) {
   const [searchQuery, setSearchQuery] = useState("");
 
   const agentNodes: NodeDefinition[] = agents.map((agent) => ({
@@ -78,10 +71,7 @@ export function NodeSidebar({
 
         {/* Search */}
         <div className="relative">
-          <Search
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-            size={16}
-          />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
           <input
             type="text"
             placeholder="Search nodes..."
@@ -115,12 +105,8 @@ export function NodeSidebar({
                 <div className="flex items-center gap-2">
                   <Icon size={14} className={node.color} />
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-slate-800 truncate">
-                      {node.name}
-                    </div>
-                    <div className="text-xs text-slate-500 capitalize">
-                      {node.description}
-                    </div>
+                    <div className="text-sm font-medium text-slate-800 truncate">{node.name}</div>
+                    <div className="text-xs text-slate-500 capitalize">{node.description}</div>
                   </div>
                 </div>
               </div>
@@ -131,9 +117,7 @@ export function NodeSidebar({
 
       {/* Footer Hint */}
       <div className="p-4 border-t border-slate-200 bg-slate-50">
-        <p className="text-xs text-slate-600">
-          💡 Drag and drop nodes onto the canvas to build your workflow
-        </p>
+        <p className="text-xs text-slate-600">💡 Drag and drop nodes onto the canvas to build your workflow</p>
       </div>
     </div>
   );

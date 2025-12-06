@@ -1,8 +1,8 @@
-import express from "express"
-import uuidv7 from "@/lib/uuid-v7.js"
-import { prisma } from "@/lib/prisma.js"
-import { PrismaClientKnownRequestError } from "@prisma/client/runtime/client"
-import { BadRequest, NotFound } from "@/lib/http-error.js"
+import express from "express";
+import uuidv7 from "@/lib/uuid-v7.js";
+import { prisma } from "@/lib/prisma.js";
+import { PrismaClientKnownRequestError } from "@prisma/client/runtime/client";
+import { BadRequest, NotFound } from "@/lib/http-error.js";
 
 /**
  * @openapi
@@ -42,7 +42,7 @@ import { BadRequest, NotFound } from "@/lib/http-error.js"
  *          nullable: true
  */
 
-const router = express.Router()
+const router = express.Router();
 
 /**
  * @openapi
@@ -63,14 +63,14 @@ const router = express.Router()
  *              items:
  *                $ref: '#/components/schemas/Workflow'
  */
-router.get('/', async (req, res, next) => {
+router.get("/", async (req, res, next) => {
   try {
-    const list = await prisma.workflow.findMany()
-    res.json(list)
+    const list = await prisma.workflow.findMany();
+    res.json(list);
   } catch (err) {
-    next(err)
+    next(err);
   }
-})
+});
 
 /**
  * @openapi
@@ -97,16 +97,16 @@ router.get('/', async (req, res, next) => {
  *      '404':
  *        $ref: '#/components/responses/NotFound'
  */
-router.get('/:id', async (req, res, next) => {
+router.get("/:id", async (req, res, next) => {
   try {
-    const { id } = req.params
-    const item = await prisma.workflow.findUnique({ where: { id } })
-    if (!item) throw NotFound('Workflow not found')
-    res.json(item)
+    const { id } = req.params;
+    const item = await prisma.workflow.findUnique({ where: { id } });
+    if (!item) throw NotFound("Workflow not found");
+    res.json(item);
   } catch (err) {
-    next(err)
+    next(err);
   }
-})
+});
 
 /**
  * @openapi
@@ -136,20 +136,20 @@ router.get('/:id', async (req, res, next) => {
  *      '400':
  *        $ref: '#/components/responses/BadRequest'
  */
-router.post('/', async (req, res, next) => {
+router.post("/", async (req, res, next) => {
   try {
-    const { name, description = null } = req.body
-    if (!name) throw BadRequest('name is required')
+    const { name, description = null } = req.body;
+    if (!name) throw BadRequest("name is required");
 
     const created = await prisma.workflow.create({
       data: { id: uuidv7(), name, description },
-    })
+    });
 
-    res.status(201).json(created)
+    res.status(201).json(created);
   } catch (err) {
-    next(err)
+    next(err);
   }
-})
+});
 
 /**
  * @openapi
@@ -182,23 +182,22 @@ router.post('/', async (req, res, next) => {
  *      '404':
  *        $ref: '#/components/responses/NotFound'
  */
-router.put('/:id', async (req, res, next) => {
+router.put("/:id", async (req, res, next) => {
   try {
-    const { id } = req.params
-    const { name, description } = req.body
+    const { id } = req.params;
+    const { name, description } = req.body;
 
     const updated = await prisma.workflow.update({
       where: { id },
       data: { name, description },
-    })
+    });
 
-    res.json(updated)
+    res.json(updated);
   } catch (err) {
-    if ((err as PrismaClientKnownRequestError).code === 'P2025')
-        throw NotFound('Workflow not found')
-    next(err)
+    if ((err as PrismaClientKnownRequestError).code === "P2025") throw NotFound("Workflow not found");
+    next(err);
   }
-})
+});
 
 /**
  * @openapi
@@ -221,16 +220,15 @@ router.put('/:id', async (req, res, next) => {
  *      '404':
  *        $ref: '#/components/responses/NotFound'
  */
-router.delete('/:id', async (req, res, next) => {
+router.delete("/:id", async (req, res, next) => {
   try {
-    const { id } = req.params
-    await prisma.workflow.delete({ where: { id } })
-    res.status(204).send()
+    const { id } = req.params;
+    await prisma.workflow.delete({ where: { id } });
+    res.status(204).send();
   } catch (err) {
-    if ((err as PrismaClientKnownRequestError).code === 'P2025')
-        throw NotFound('Workflow not found')
-    next(err)
+    if ((err as PrismaClientKnownRequestError).code === "P2025") throw NotFound("Workflow not found");
+    next(err);
   }
-})
+});
 
-export default router
+export default router;

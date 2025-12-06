@@ -14,9 +14,6 @@ export const baseConfig = defineConfig({
       ],
       enabled: true,
     },
-    reporters: [
-      ["junit", { outputFile: "./junit.xml" }],
-      "default",
-    ]
+    reporters: [["junit", { outputFile: "./junit.xml" }], "default"],
   },
 });

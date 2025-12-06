@@ -13,15 +13,15 @@ export type TextInputNodeData = Node<{
 export default function TextInputNode({ data }: NodeProps<TextInputNodeData>) {
   return (
     <WorkflowNode status={data.status}>
-        <div className="flex items-center gap-2">
-          <div className="p-2 rounded">
-            <Text size={16} />
-          </div>
-          <h1 className="text-sm font-semibold text-slate-800">{data.label || "Text Input"}</h1>
+      <div className="flex items-center gap-2">
+        <div className="p-2 rounded">
+          <Text size={16} />
         </div>
-        <p className="w-30 h-full text-wrap truncate mt-2 text-xs text-slate-600 line-clamp-2">
-          {data.value || data.placeholder || ""}
-        </p>
+        <h1 className="text-sm font-semibold text-slate-800">{data.label || "Text Input"}</h1>
+      </div>
+      <p className="w-30 h-full text-wrap truncate mt-2 text-xs text-slate-600 line-clamp-2">
+        {data.value || data.placeholder || ""}
+      </p>
     </WorkflowNode>
   );
 }

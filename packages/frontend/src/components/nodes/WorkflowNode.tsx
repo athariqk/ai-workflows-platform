@@ -6,7 +6,7 @@ export type NodeStatus = "idle" | "running" | "completed" | "failed";
 interface WorkflowNodeProps {
   children: React.ReactNode;
   status?: NodeStatus;
-};
+}
 
 export default function WorkflowNode({ children, status }: WorkflowNodeProps) {
   const currentStatus = status || "idle";

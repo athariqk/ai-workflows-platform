@@ -1,8 +1,8 @@
-import express from "express"
-import uuidv7 from "@/lib/uuid-v7.js"
-import { prisma } from "@/lib/prisma.js"
-import { PrismaClientKnownRequestError } from "@prisma/client/runtime/client"
-import { BadRequest, NotFound } from "@/lib/http-error.js"
+import express from "express";
+import uuidv7 from "@/lib/uuid-v7.js";
+import { prisma } from "@/lib/prisma.js";
+import { PrismaClientKnownRequestError } from "@prisma/client/runtime/client";
+import { BadRequest, NotFound } from "@/lib/http-error.js";
 
 /**
  * @openapi
@@ -64,7 +64,7 @@ import { BadRequest, NotFound } from "@/lib/http-error.js"
  *          nullable: true
  */
 
-const router = express.Router()
+const router = express.Router();
 
 /**
  * @openapi
@@ -85,14 +85,14 @@ const router = express.Router()
  *              items:
  *                $ref: '#/components/schemas/Agent'
  */
-router.get('/', async (req, res, next) => {
+router.get("/", async (req, res, next) => {
   try {
-    const agents = await prisma.agent.findMany()
-    res.json(agents)
+    const agents = await prisma.agent.findMany();
+    res.json(agents);
   } catch (err) {
-    next(err)
+    next(err);
   }
-})
+});
 
 /**
  * @openapi
@@ -119,16 +119,16 @@ router.get('/', async (req, res, next) => {
  *      '404':
  *        $ref: '#/components/responses/NotFound'
  */
-router.get('/:id', async (req, res, next) => {
+router.get("/:id", async (req, res, next) => {
   try {
-    const { id } = req.params
-    const agent = await prisma.agent.findUnique({ where: { id } })
-    if (!agent) throw NotFound('Agent not found')
-    res.json(agent)
+    const { id } = req.params;
+    const agent = await prisma.agent.findUnique({ where: { id } });
+    if (!agent) throw NotFound("Agent not found");
+    res.json(agent);
   } catch (err) {
-    next(err)
+    next(err);
   }
-})
+});
 
 /**
  * @openapi
@@ -160,11 +160,10 @@ router.get('/:id', async (req, res, next) => {
  *      '400':
  *        $ref: '#/components/responses/BadRequest'
  */
-router.post('/', async (req, res, next) => {
+router.post("/", async (req, res, next) => {
   try {
-    const { name, model, system_prompt = null, temperature = null } = req.body
-    if (!name || !model)
-      throw BadRequest('name and model are required')
+    const { name, model, system_prompt = null, temperature = null } = req.body;
+    if (!name || !model) throw BadRequest("name and model are required");
 
     const newAgent = await prisma.agent.create({
       data: {
@@ -174,13 +173,13 @@ router.post('/', async (req, res, next) => {
         system_prompt,
         temperature,
       },
-    })
+    });
 
-    res.status(201).json(newAgent)
+    res.status(201).json(newAgent);
   } catch (err) {
-    next(err)
+    next(err);
   }
-})
+});
 
 /**
  * @openapi
@@ -213,23 +212,22 @@ router.post('/', async (req, res, next) => {
  *      '404':
  *        $ref: '#/components/responses/NotFound'
  */
-router.put('/:id', async (req, res, next) => {
+router.put("/:id", async (req, res, next) => {
   try {
-    const { id } = req.params
-    const { name, model, system_prompt, temperature } = req.body
+    const { id } = req.params;
+    const { name, model, system_prompt, temperature } = req.body;
 
     const updated = await prisma.agent.update({
       where: { id },
       data: { name, model, system_prompt, temperature },
-    })
+    });
 
-    res.json(updated)
+    res.json(updated);
   } catch (err) {
-    if ((err as PrismaClientKnownRequestError).code === 'P2025')
-      throw NotFound('Agent not found')
-    next(err)
+    if ((err as PrismaClientKnownRequestError).code === "P2025") throw NotFound("Agent not found");
+    next(err);
   }
-})
+});
 
 /**
  * @openapi
@@ -252,16 +250,15 @@ router.put('/:id', async (req, res, next) => {
  *      '404':
  *        $ref: '#/components/responses/NotFound'
  */
-router.delete('/:id', async (req, res, next) => {
+router.delete("/:id", async (req, res, next) => {
   try {
-    const { id } = req.params
-    await prisma.agent.delete({ where: { id } })
-    res.status(204).send()
+    const { id } = req.params;
+    await prisma.agent.delete({ where: { id } });
+    res.status(204).send();
   } catch (err) {
-    if ((err as PrismaClientKnownRequestError).code === 'P2025')
-      throw NotFound('Agent not found')
-    next(err)
+    if ((err as PrismaClientKnownRequestError).code === "P2025") throw NotFound("Agent not found");
+    next(err);
   }
-})
+});
 
-export default router
+export default router;

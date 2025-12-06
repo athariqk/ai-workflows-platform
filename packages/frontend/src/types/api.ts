@@ -1,10 +1,10 @@
 // Backend API types matching Prisma schema
 
-export type StepType = 'text_input' | 'agent';
+export type StepType = "text_input" | "agent";
 
-export type ModelType = 'gemini_2_5_flash' | 'gpt_5_mini' | 'claude_sonnet_4_5';
+export type ModelType = "gemini_2_5_flash" | "gpt_5_mini" | "claude_sonnet_4_5";
 
-export type WorkflowStatus = "idle" | 'pending' | 'running' | 'completed' | 'failed';
+export type WorkflowStatus = "idle" | "pending" | "running" | "completed" | "failed";
 
 export interface Agent {
   id: string;
@@ -71,23 +71,23 @@ export interface WorkflowEdgeCreate {
 export interface WorkflowRun {
   run_id: string;
   job_id: string;
-  status: string;
+  status: WorkflowStatus;
 }
 
 export interface WorkflowStepProgress {
-    id: string;
-    name: string;
-    status: WorkflowStatus;
-    output?: string;
-    error?: string;
+  nodeId: string;
+  name: string;
+  status: WorkflowStatus;
+  output?: string;
+  error?: string;
 }
 
 export interface WorkflowProgress {
-    workflowId: string;
-    status: WorkflowStatus;
-    // If currentStep is undefined, it means the progress is for the overall workflow
-    currentStep?: WorkflowStepProgress;
-    error?: string;
+  workflowId: string;
+  runStatus: WorkflowRun;
+  // If currentStep is undefined, it means the progress is for the overall workflow
+  currentStep?: WorkflowStepProgress;
+  error?: string;
 }
 
 export interface StepLog {

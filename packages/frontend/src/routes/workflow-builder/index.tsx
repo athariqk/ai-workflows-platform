@@ -13,7 +13,7 @@ import { NodeSidebar } from "../../components/workflow-builder/NodeSidebar";
 import { WorkflowCanvas } from "../../components/workflow-builder/WorkflowCanvas";
 import { RunButton } from "../../components/workflow-builder/RunButton";
 import { useState } from "react";
-import type { WorkflowProgress, WorkflowRun } from "@/types/api";
+import type { WorkflowProgress, WorkflowRun, WorkflowStatus } from "@/types/api";
 import { api } from "@/lib/api";
 
 interface WorkflowBuilderSearch {
@@ -41,19 +41,14 @@ function EditorComponent() {
   const { workflowId } = Route.useSearch();
 
   const [currentRun, setCurrentRun] = useState<WorkflowRun | null>(null);
+  const [workflowStatus, setWorkflowStatus] = useState<WorkflowStatus>("idle");
+  const [workflowError, setWorkflowError] = useState<string | null>(null);
 
   // Fetch workflow and agents
-  const { workflow, loading, error, agents, agentsLoading } =
-    useWorkflowData(workflowId);
+  const { workflow, loading, error, agents, agentsLoading } = useWorkflowData(workflowId);
 
   // Manage edges state
-  const {
-    edges,
-    setEdges,
-    onEdgesChange,
-    onConnect,
-    markEdgesAsCascadeDeleted,
-  } = useWorkflowEdges(workflowId);
+  const { edges, setEdges, onEdgesChange, onConnect, markEdgesAsCascadeDeleted } = useWorkflowEdges(workflowId);
 
   // Manage nodes state (depends on edges for delete reconnection)
   const { nodes, setNodes, onNodesChange, onNodesDelete } = useWorkflowNodes(
@@ -63,52 +58,61 @@ function EditorComponent() {
     markEdgesAsCascadeDeleted
   );
 
-  const handleProgress = (progress: WorkflowProgress) => {
+  const handleProgress = (_id: string, progress: WorkflowProgress) => {
     console.log("Workflow progress update:", progress);
-    // Update node status based on progress
-    setNodes((currentNodes) =>
-      currentNodes.map((node) => {
-        if (node.id === progress.currentStep?.id) {
-          return {
-            ...node,
-            data: {
-              ...node.data,
-              output: progress.currentStep?.output,
-              status: progress.currentStep.status,
-              error: progress.currentStep.error ?? undefined,
-            },
-          };
-        }
-        return node;
-      })
-    );
+    
+    // Update workflow-level status
+    if (progress.runStatus?.status) {
+      setWorkflowStatus(progress.runStatus.status);
+    }
+    if (progress.error) {
+      setWorkflowError(progress.error);
+    }
+
+    // Update current run information
+    if (progress.runStatus?.run_id && progress.runStatus?.job_id && workflowId) {
+      setCurrentRun({
+        run_id: progress.runStatus.run_id,
+        job_id: progress.runStatus.job_id,
+        status: progress.runStatus.status ?? "idle",
+      });
+      registerJob(progress.runStatus.job_id, workflowId);
+    }
+    
+    // Update node status based on current step progress
+    if (progress.currentStep) {
+      // Find the node by matching the step ID to node_id from step_log
+      setNodes((currentNodes) =>
+        currentNodes.map((node) => {
+          if (node.id === progress.currentStep?.nodeId) {
+            return {
+              ...node,
+              data: {
+                ...node.data,
+                output: progress.currentStep?.output,
+                status: progress.currentStep?.status,
+                error: progress.currentStep?.error ?? undefined,
+              },
+            };
+          }
+          return node;
+        })
+      );
+    }
   };
 
   // Track a single workflow progress and update node/step status
-  const { workflowStatus, workflowError } = useWorkflowProgress(
-    currentRun,
-    handleProgress
-  );
+  const { registerJob } = useWorkflowProgress(workflowId ? [workflowId] : [], handleProgress);
 
   // ReactFlow drag and drop handlers
-  const { onDrop, onDragOver, onDragStart } = useReactFlowHandlers(
-    workflowId,
-    setNodes,
-    setEdges
-  );
+  const { onDrop, onDragOver, onDragStart } = useReactFlowHandlers(workflowId, setNodes, setEdges);
 
   return (
     <DashboardLayout
       showBackLink
       backLinkTo="/dashboard/workflows"
       backLinkLabel="Back to Workflows"
-      sidebar={
-        <NodeSidebar
-          agents={agents}
-          agentsLoading={agentsLoading}
-          onDragStart={onDragStart}
-        />
-      }
+      sidebar={<NodeSidebar agents={agents} agentsLoading={agentsLoading} onDragStart={onDragStart} />}
     >
       <div className="flex h-full overflow-hidden">
         <div className="flex-1 flex flex-col overflow-hidden">
@@ -117,7 +121,7 @@ function EditorComponent() {
             loading={loading}
             error={error}
             currentRun={currentRun}
-            workflowStatus={workflowStatus}
+            workflowStatus={workflowStatus ?? "idle"}
             workflowError={workflowError}
           />
           <WorkflowCanvas
@@ -142,13 +146,14 @@ function EditorComponent() {
                   run_id: "none",
                   status: "idle",
                 });
+                registerJob(jobId, workflowId);
                 await api.runWorkflow(workflowId, jobId);
               } catch (err) {
                 console.error("Failed to run workflow:", err);
               }
             }}
             currentRun={currentRun}
-            workflowStatus={workflowStatus}
+            workflowStatus={workflowStatus ?? "idle"}
           />
         </div>
       </div>

@@ -4,34 +4,34 @@
  * Runs Prisma migrations and handles connection pooling
  */
 
-import { spawn } from 'child_process';
-import { process, exit } from 'process';
-import console from 'console';
+import { spawn } from "child_process";
+import { process, exit } from "process";
+import console from "console";
 
 const DATABASE_URL = process.env.DATABASE_URL;
 
 if (!DATABASE_URL) {
-  console.error('❌ DATABASE_URL environment variable is required');
+  console.error("❌ DATABASE_URL environment variable is required");
   exit(1);
 }
 
-console.log('🔄 Running database migrations...');
+console.log("🔄 Running database migrations...");
 
 // Use prisma migrate deploy for production (applies migrations without prompts)
-const migrate = spawn('npx', ['prisma', 'migrate', 'deploy'], {
-  stdio: 'inherit',
+const migrate = spawn("npx", ["prisma", "migrate", "deploy"], {
+  stdio: "inherit",
   shell: true,
-  env: { ...process.env, DATABASE_URL }
+  env: { ...process.env, DATABASE_URL },
 });
 
-migrate.on('error', (error) => {
-  console.error('❌ Migration failed:', error);
+migrate.on("error", (error) => {
+  console.error("❌ Migration failed:", error);
   exit(1);
 });
 
-migrate.on('exit', (code) => {
+migrate.on("exit", (code) => {
   if (code === 0) {
-    console.log('✅ Database migrations completed successfully');
+    console.log("✅ Database migrations completed successfully");
     exit(0);
   } else {
     console.error(`❌ Migration process exited with code ${code}`);

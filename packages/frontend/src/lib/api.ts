@@ -13,10 +13,10 @@ import type {
   WorkflowEdgeCreate,
   WorkflowRun,
   RunLog,
-} from '@/types/api';
+} from "@/types/api";
 
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
-export const API_KEY = import.meta.env.VITE_API_KEY || '';
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
+export const API_KEY = import.meta.env.VITE_API_KEY || "";
 
 class APIClient {
   private baseURL: string;
@@ -27,13 +27,9 @@ class APIClient {
     this.apiKey = apiKey;
   }
 
-  private async request<T>(
-    endpoint: string,
-    options: RequestInit = {},
-    queries?: Record<string, string>
-  ): Promise<T> {
+  private async request<T>(endpoint: string, options: RequestInit = {}, queries?: Record<string, string>): Promise<T> {
     const url = new URL(endpoint, this.baseURL);
-    url.searchParams.set('api_key', this.apiKey);
+    url.searchParams.set("api_key", this.apiKey);
     if (queries) {
       for (const [key, value] of Object.entries(queries)) {
         url.searchParams.set(key, value);
@@ -43,7 +39,7 @@ class APIClient {
     const response = await fetch(url.toString(), {
       ...options,
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
         ...options.headers,
       },
     });
@@ -52,7 +48,7 @@ class APIClient {
       const error: APIError = await response.json().catch(() => ({
         error: `HTTP ${response.status}: ${response.statusText}`,
       }));
-      throw new Error(error.error || error.message || 'API request failed');
+      throw new Error(error.error || error.message || "API request failed");
     }
 
     // Handle 204 No Content
@@ -65,7 +61,7 @@ class APIClient {
 
   // Agent endpoints
   async getAgents(): Promise<Agent[]> {
-    return this.request<Agent[]>('/v1/agents');
+    return this.request<Agent[]>("/v1/agents");
   }
 
   async getAgent(id: string): Promise<Agent> {
@@ -73,28 +69,28 @@ class APIClient {
   }
 
   async createAgent(data: AgentCreate): Promise<Agent> {
-    return this.request<Agent>('/v1/agents', {
-      method: 'POST',
+    return this.request<Agent>("/v1/agents", {
+      method: "POST",
       body: JSON.stringify(data),
     });
   }
 
   async updateAgent(id: string, data: AgentUpdate): Promise<Agent> {
     return this.request<Agent>(`/v1/agents/${id}`, {
-      method: 'PUT',
+      method: "PUT",
       body: JSON.stringify(data),
     });
   }
 
   async deleteAgent(id: string): Promise<void> {
     return this.request(`/v1/agents/${id}`, {
-      method: 'DELETE',
+      method: "DELETE",
     });
   }
 
   // Workflow endpoints
   async getWorkflows(): Promise<Workflow[]> {
-    return this.request<Workflow[]>('/v1/workflows');
+    return this.request<Workflow[]>("/v1/workflows");
   }
 
   async getWorkflow(id: string): Promise<Workflow> {
@@ -102,79 +98,76 @@ class APIClient {
   }
 
   async createWorkflow(data: WorkflowCreate): Promise<Workflow> {
-    return this.request<Workflow>('/v1/workflows', {
-      method: 'POST',
+    return this.request<Workflow>("/v1/workflows", {
+      method: "POST",
       body: JSON.stringify(data),
     });
   }
 
   async updateWorkflow(id: string, data: WorkflowUpdate): Promise<Workflow> {
     return this.request<Workflow>(`/v1/workflows/${id}`, {
-      method: 'PUT',
+      method: "PUT",
       body: JSON.stringify(data),
     });
   }
 
   async deleteWorkflow(id: string): Promise<void> {
     return this.request(`/v1/workflows/${id}`, {
-      method: 'DELETE',
+      method: "DELETE",
     });
   }
 
   // Workflow Node endpoints
   async getWorkflowNodes(): Promise<WorkflowNode[]> {
-    return this.request<WorkflowNode[]>('/v1/workflow-nodes');
+    return this.request<WorkflowNode[]>("/v1/workflow-nodes");
   }
 
   async createWorkflowNode(data: WorkflowNodeCreate): Promise<WorkflowNode> {
-    return this.request<WorkflowNode>('/v1/workflow-nodes', {
-      method: 'POST',
+    return this.request<WorkflowNode>("/v1/workflow-nodes", {
+      method: "POST",
       body: JSON.stringify(data),
     });
   }
 
   async updateWorkflowNode(id: string, data: Partial<WorkflowNodeCreate>): Promise<WorkflowNode> {
     return this.request<WorkflowNode>(`/v1/workflow-nodes/${id}`, {
-      method: 'PUT',
+      method: "PUT",
       body: JSON.stringify(data),
     });
   }
 
   async deleteWorkflowNode(id: string): Promise<void> {
     return this.request(`/v1/workflow-nodes/${id}`, {
-      method: 'DELETE',
+      method: "DELETE",
     });
   }
 
   // Workflow Edge endpoints
   async getWorkflowEdges(): Promise<WorkflowEdge[]> {
-    return this.request<WorkflowEdge[]>('/v1/workflow-edges');
+    return this.request<WorkflowEdge[]>("/v1/workflow-edges");
   }
 
   async createWorkflowEdge(data: WorkflowEdgeCreate): Promise<WorkflowEdge> {
-    return this.request<WorkflowEdge>('/v1/workflow-edges', {
-      method: 'POST',
+    return this.request<WorkflowEdge>("/v1/workflow-edges", {
+      method: "POST",
       body: JSON.stringify(data),
     });
   }
 
   async deleteWorkflowEdge(id: string): Promise<void> {
     return this.request(`/v1/workflow-edges/${id}`, {
-      method: 'DELETE',
+      method: "DELETE",
     });
   }
 
   async runWorkflow(id: string, job_id: string): Promise<WorkflowRun> {
     return this.request<WorkflowRun>(`/v1/runner/run`, {
-      method: 'POST',
+      method: "POST",
       body: JSON.stringify({ workflow_id: id, job_id: job_id }),
     });
   }
 
-  async getRunLogs(params?: {
-    workflow_id?: string;
-    status?: WorkflowStatus;
-  }): Promise<RunLog[]> {
+  async getRunLogs(params?: { workflow_id?: string; status?: WorkflowStatus }): Promise<RunLog[]> {
     const queries: Record<string, string> = {};
     if (params?.workflow_id) {
       queries.workflow_id = params.workflow_id;
@@ -183,9 +176,13 @@ class APIClient {
       queries.status = params.status;
     }
 
-    const runLogs = await this.request<RunLog[]>("/v1/runner/runs", {
-      method: 'GET',
-    }, Object.entries(queries).length > 0 ? queries : undefined);
+    const runLogs = await this.request<RunLog[]>(
+      "/v1/runner/runs",
+      {
+        method: "GET",
+      },
+      Object.entries(queries).length > 0 ? queries : undefined
+    );
 
     return runLogs;
   }
@@ -193,7 +190,6 @@ class APIClient {
   async getRunStatus(runId: string): Promise<RunLog> {
     return this.request<RunLog>(`/v1/runner/status/${runId}`);
   }
-
 }
 
 export const api = new APIClient(API_BASE_URL, API_KEY);

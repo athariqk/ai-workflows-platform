@@ -4,6 +4,6 @@ import { JobProgress, JobProgressType } from "@/lib/types.js";
 export function reportProgress<T>(job: Queue.Job<T>, type: JobProgressType, data: unknown) {
   job.reportProgress({
     type: type,
-    data: data
+    data: data,
   } as JobProgress);
 }

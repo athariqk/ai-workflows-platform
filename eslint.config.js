@@ -1,11 +1,30 @@
 // @ts-check
 
-import eslint from '@eslint/js';
-import { defineConfig } from 'eslint/config';
-import tseslint from 'typescript-eslint';
+import eslint from "@eslint/js";
+import { defineConfig } from "eslint/config";
+import tseslint from "typescript-eslint";
+import eslintConfigPrettier from "eslint-config-prettier";
 
 export default defineConfig(
-    eslint.configs.recommended,
-    tseslint.configs.strict,
-    tseslint.configs.stylistic,
+  eslint.configs.recommended,
+  tseslint.configs.strict,
+  tseslint.configs.stylistic,
+  {
+    rules: {
+      "max-len": [
+        "warn",
+        {
+          code: 120,
+          tabWidth: 2,
+          ignoreUrls: true,
+          ignoreStrings: true,
+          ignoreTemplateLiterals: true,
+          ignoreRegExpLiterals: true,
+          ignoreComments: false,
+        },
+      ],
+    },
+  },
+  // Disable ESLint rules that conflict with Prettier
+  eslintConfigPrettier
 );

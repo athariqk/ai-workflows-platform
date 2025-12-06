@@ -45,10 +45,10 @@ function ExecutionLogsPage() {
   return (
     <div>
       <header className="bg-white border-b border-slate-200 px-8 py-5 flex gap-5 sticky top-0 z-10">
-        <h2 className="text-xl font-semibold text-slate-800">
-          Execution Logs ({logs.length})
-        </h2>
-        <span className="mb-4 text-sm text-slate-400">Refresh this page to see the latest execution logs and state.</span>
+        <h2 className="text-xl font-semibold text-slate-800">Execution Logs ({logs.length})</h2>
+        <span className="mb-4 text-sm text-slate-400">
+          Refresh this page to see the latest execution logs and state.
+        </span>
       </header>
 
       <div className="p-8">
@@ -84,11 +84,7 @@ function ExecutionLogsPage() {
 
             const duration =
               log.started_at && log.finished_at
-                ? Math.round(
-                    (new Date(log.finished_at).getTime() -
-                      new Date(log.started_at).getTime()) /
-                      1000
-                  )
+                ? Math.round((new Date(log.finished_at).getTime() - new Date(log.started_at).getTime()) / 1000)
                 : null;
 
             return (
@@ -102,15 +98,11 @@ function ExecutionLogsPage() {
                       <h3 className="text-lg font-semibold text-slate-900 mb-1">
                         {log.workflow?.name ?? "Unknown Workflow"}
                       </h3>
-                      <p className="text-sm text-slate-500 font-mono">
-                        {log.id}
-                      </p>
+                      <p className="text-sm text-slate-500 font-mono">{log.id}</p>
                     </div>
                     {log.status && (
                       <span
-                        className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(
-                          log.status
-                        )}`}
+                        className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(log.status)}`}
                       >
                         {log.status.toUpperCase()}
                       </span>
@@ -120,15 +112,11 @@ function ExecutionLogsPage() {
                   <div className="grid grid-cols-2 gap-4 mb-4">
                     <div>
                       <p className="text-xs text-slate-500 mb-1">Started</p>
-                      <p className="text-sm text-slate-700">
-                        {formatDate(log.started_at ?? null)}
-                      </p>
+                      <p className="text-sm text-slate-700">{formatDate(log.started_at ?? null)}</p>
                     </div>
                     <div>
                       <p className="text-xs text-slate-500 mb-1">Finished</p>
-                      <p className="text-sm text-slate-700">
-                        {formatDate(log.finished_at ?? null)}
-                      </p>
+                      <p className="text-sm text-slate-700">{formatDate(log.finished_at ?? null)}</p>
                     </div>
                   </div>
 
@@ -136,17 +124,14 @@ function ExecutionLogsPage() {
                     <div className="mb-4">
                       <p className="text-xs text-slate-500 mb-1">Duration</p>
                       <p className="text-sm text-slate-700">
-                        {duration}s ({Math.floor(duration / 60)}m{" "}
-                        {duration % 60}s)
+                        {duration}s ({Math.floor(duration / 60)}m {duration % 60}s)
                       </p>
                     </div>
                   )}
 
                   {log.error && (
                     <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
-                      <p className="text-sm font-medium text-red-800 mb-1">
-                        Error
-                      </p>
+                      <p className="text-sm font-medium text-red-800 mb-1">Error</p>
                       <p className="text-sm text-red-700">{log.error}</p>
                     </div>
                   )}
@@ -185,9 +170,7 @@ function ExecutionLogsPage() {
                                           : "bg-slate-300"
                                   }`}
                                 />
-                                <span className="text-slate-600 text-sm">
-                                  {step.status || "unknown"}
-                                </span>
+                                <span className="text-slate-600 text-sm">{step.status || "unknown"}</span>
                               </div>
                               {step.error && (
                                 <div className="text-red-600 text-sm mb-2 p-2 bg-red-50 rounded border border-red-200">

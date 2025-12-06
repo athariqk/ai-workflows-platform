@@ -9,13 +9,7 @@ interface ModalProps {
   maxWidth?: "sm" | "md" | "lg" | "xl" | "2xl";
 }
 
-export function Modal({
-  isOpen,
-  onClose,
-  title,
-  children,
-  maxWidth = "2xl",
-}: ModalProps) {
+export function Modal({ isOpen, onClose, title, children, maxWidth = "2xl" }: ModalProps) {
   if (!isOpen) return null;
 
   const maxWidthClasses = {
@@ -28,9 +22,7 @@ export function Modal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div
-        className={`bg-white rounded-xl shadow-xl ${maxWidthClasses[maxWidth]} w-full max-h-[90vh] overflow-y-auto`}
-      >
+      <div className={`bg-white rounded-xl shadow-xl ${maxWidthClasses[maxWidth]} w-full max-h-[90vh] overflow-y-auto`}>
         <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center">
           <h3 className="text-xl font-semibold text-slate-800">{title}</h3>
           <Button variant="ghost" onClick={onClose}>

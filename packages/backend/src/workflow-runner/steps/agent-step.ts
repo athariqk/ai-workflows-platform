@@ -3,106 +3,108 @@ import { prisma } from "@/lib/prisma.js";
 import Step from "@/workflow-runner/steps/step.js";
 
 export default class AgentStep extends Step {
-    private agentId: string;
-    private agent: agent | null;
+  private agentId: string;
+  private agent: agent | null;
 
-    constructor(agentId: string) {
-        super("agent");
-        this.agentId = agentId;
-        this.agent = null;
+  constructor(agentId: string) {
+    super("agent");
+    this.agentId = agentId;
+    this.agent = null;
+  }
+
+  async initialize(): Promise<void> {
+    this.agent = await prisma.agent.findUnique({
+      where: { id: this.agentId },
+    });
+    if (this.agent?.name) {
+      this.name = `${this.name} (${this.agent.name})`;
+    }
+  }
+
+  async execute(input?: string): Promise<string> {
+    if (!this.agent) throw new Error(`Agent has not been loaded`);
+
+    if (this.agent.model !== "gemini_2_5_flash")
+      throw new Error(`Model ${this.agent.model} is not supported. Only gemini_2_5_flash is currently supported.`);
+
+    const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+    if (!GEMINI_API_KEY) {
+      throw new Error("GEMINI_API_KEY environment variable is not set");
     }
 
-    async initialize(): Promise<void> {
-        this.agent = await prisma.agent.findUnique({
-            where: { id: this.agentId },
-        });
-        if (this.agent?.name) {
-            this.name = `${this.name} (${this.agent.name})`;
-        }
-    }
+    const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
 
-    async execute(input?: string): Promise<string> {
-        if (!this.agent)
-            throw new Error(`Agent has not been loaded`);
-
-        if (this.agent.model !== "gemini_2_5_flash")
-            throw new Error(`Model ${this.agent.model} is not supported. Only gemini_2_5_flash is currently supported.`);
-
-        const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-        if (!GEMINI_API_KEY) {
-            throw new Error('GEMINI_API_KEY environment variable is not set');
-        }
-
-        const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
-
-        const systemPrompt = `You are an agentic LLM. Use tools as needed to answer the user's query.
+    const systemPrompt = `You are an agentic LLM. Use tools as needed to answer the user's query.
             The common behavior for an agentic LLM is: Goal-oriented: Agentic LLMs would actively pursue goals, either
             intrinsically defined or given by users. Proactive: They would take initiative rather than solely reacting to prompts.
             Autonomous: They would exhibit independent decision-making in the pursuit of goals, demonstrating some degree of
             self-direction. World-aware: They would be able to perceive and interact with real-world environments (or sufficiently
             complex simulations) to gather information, carry out actions, and update their understanding. Also, the following is a
-            custom system prompt for your behavior/role: ${this.agent.system_prompt}`
+            custom system prompt for your behavior/role: ${this.agent.system_prompt}`;
 
-        const requestBody = {
-            system_instruction: { parts: [{ text: systemPrompt }] },
-            contents: [{ parts: [{ text: input }] }],
-            tools: [{ google_search: {} }],
-            generationConfig: this.agent.temperature !== null ? {
-                temperature: this.agent.temperature
-            } : undefined
-        };
+    const requestBody = {
+      system_instruction: { parts: [{ text: systemPrompt }] },
+      contents: [{ parts: [{ text: input }] }],
+      tools: [{ google_search: {} }],
+      generationConfig:
+        this.agent.temperature !== null
+          ? {
+              temperature: this.agent.temperature,
+            }
+          : undefined,
+    };
 
-        console.log('[AgentStep] Gemini API Request:', {
-            url,
-            agent: { id: this.agent.id, name: this.agent.name, model: this.agent.model },
-            system_prompt: this.agent.system_prompt,
-            input,
-            temperature: this.agent.temperature,
-        });
+    console.log("[AgentStep] Gemini API Request:", {
+      url,
+      agent: { id: this.agent.id, name: this.agent.name, model: this.agent.model },
+      system_prompt: this.agent.system_prompt,
+      input,
+      temperature: this.agent.temperature,
+    });
 
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'x-goog-api-key': GEMINI_API_KEY,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(requestBody),
-        });
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "x-goog-api-key": GEMINI_API_KEY,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(requestBody),
+    });
 
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            console.error('[AgentStep] Gemini API Error:', {
-                status: response.status,
-                statusText: response.statusText,
-                errorData,
-            });
-            throw new Error(
-                `Gemini API request failed: ${response.status} ${response.statusText}. ${JSON.stringify(errorData)}`
-            );
-        }
-
-        const data = await response.json() as {
-            candidates?: {
-                content?: {
-                    parts?: {
-                        text?: string;
-                    }[];
-                };
-            }[];
-        };
-
-        if (!data.candidates || data.candidates.length === 0) {
-            console.error('[AgentStep] No candidates in response:', data);
-            throw new Error('No content generated by Gemini API');
-        }
-
-        const generatedText = data.candidates[0]?.content?.parts?.[0]?.text || '';
-
-        console.log('[AgentStep] Gemini API Response:', {
-            generatedTextLength: generatedText.length,
-            preview: generatedText.substring(0, 100) + (generatedText.length > 100 ? '...' : ''),
-        });
-
-        return generatedText;
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error("[AgentStep] Gemini API Error:", {
+        status: response.status,
+        statusText: response.statusText,
+        errorData,
+      });
+      throw new Error(
+        `Gemini API request failed: ${response.status} ${response.statusText}. ${JSON.stringify(errorData)}`
+      );
     }
+
+    const data = (await response.json()) as {
+      candidates?: {
+        content?: {
+          parts?: {
+            text?: string;
+          }[];
+        };
+      }[];
+    };
+
+    if (!data.candidates || data.candidates.length === 0) {
+      console.error("[AgentStep] No candidates in response:", data);
+      throw new Error("No content generated by Gemini API");
+    }
+
+    const generatedText = data.candidates[0]?.content?.parts?.[0]?.text || "";
+
+    console.log("[AgentStep] Gemini API Response:", {
+      generatedTextLength: generatedText.length,
+      preview: generatedText.substring(0, 100) + (generatedText.length > 100 ? "..." : ""),
+    });
+
+    return generatedText;
+  }
 }

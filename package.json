@@ -1,27 +1,31 @@
 {
-    "name": "awp-app",
-    "description": "A mini AI agent workflow platform project",
-    "packageManager": "npm@11.6.2",
-    "scripts": {
-        "start": "turbo run --parallel start",
-        "start:be": "turbo run start --filter=awp-backend",
-        "start:fe": "turbo run start --filter=awp-frontend",
-        "build": "turbo run build",
-        "dev": "turbo run --parallel dev",
-        "dev:be": "turbo run dev --filter=awp-backend",
-        "dev:fe": "turbo run dev --filter=awp-frontend",
-        "lint": "turbo run lint",
-        "lint:fix": "turbo run lint:fix",
-        "test": "turbo run test",
-        "view-report": "turbo run view-report"
-    },
-    "workspaces": [
-        "packages/*"
-    ],
-    "devDependencies": {
-        "@repo/vitest-config": "*",
-        "@vitest/ui": "^4.0.14",
-        "turbo": "^2.6.1",
-        "vitest": "^4.0.14"
-    }
+  "name": "awp-app",
+  "description": "A mini AI agent workflow platform project",
+  "packageManager": "npm@11.6.2",
+  "scripts": {
+    "start": "turbo run --parallel start",
+    "start:be": "turbo run start --filter=awp-backend",
+    "start:fe": "turbo run start --filter=awp-frontend",
+    "build": "turbo run build",
+    "dev": "turbo run --parallel dev",
+    "dev:be": "turbo run dev --filter=awp-backend",
+    "dev:fe": "turbo run dev --filter=awp-frontend",
+    "lint": "turbo run lint",
+    "lint:fix": "turbo run lint:fix",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "test": "turbo run test",
+    "view-report": "turbo run view-report"
+  },
+  "workspaces": [
+    "packages/*"
+  ],
+  "devDependencies": {
+    "@repo/vitest-config": "*",
+    "@vitest/ui": "^4.0.14",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.7.4",
+    "turbo": "^2.6.1",
+    "vitest": "^4.0.14"
+  }
 }

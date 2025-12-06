@@ -1,19 +1,11 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import {
-  Layers,
-  Loader2,
-  Plus,
-  Edit,
-  Trash2,
-  Workflow as WorkflowIcon,
-  PlayIcon,
-} from "lucide-react";
+import { Layers, Loader2, Plus, Edit, Trash2, Workflow as WorkflowIcon, PlayIcon } from "lucide-react";
 import { useState, useEffect } from "react";
 import { api } from "../../lib/api";
 import type { Workflow, WorkflowStatus } from "../../types/api";
 import { Button } from "../../components/Button";
 import { Modal } from "../../components/Modal";
-import { useWorkflowsProgress } from "@/hooks/useWorkflowsProgress";
+import { useWorkflowProgress } from "@/hooks/useWorkflowProgress";
 
 export const Route = createFileRoute("/dashboard/workflows")({
   component: WorkflowsPage,
@@ -50,16 +42,14 @@ function WorkflowsPage() {
   });
 
   // Track run statuses for all workflows with real-time updates
-  const { registerJob } = useWorkflowsProgress(
+  const { registerJob } = useWorkflowProgress(
     workflows.map((w) => w.id),
-    (workflowId, status) => {
+    (workflowId, progress) => {
       setWorkflowStatuses((prev) => {
         const updated = new Map(prev);
         updated.set(workflowId, {
-          status: status.status,
-          error: status.error,
-          startedAt: status.startedAt,
-          finishedAt: status.finishedAt,
+          status: progress.runStatus?.status,
+          error: progress.error,
         });
         return updated;
       });
@@ -135,11 +125,7 @@ function WorkflowsPage() {
         name: workflowForm.name,
         description: workflowForm.description || null,
       });
-      setWorkflows(
-        workflows.map((w) =>
-          w.id === updatedWorkflow.id ? updatedWorkflow : w
-        )
-      );
+      setWorkflows(workflows.map((w) => (w.id === updatedWorkflow.id ? updatedWorkflow : w)));
       setShowEditModal(false);
       setEditingWorkflow(null);
       setWorkflowForm({
@@ -156,13 +142,8 @@ function WorkflowsPage() {
   return (
     <>
       <header className="bg-white border-b border-slate-200 px-8 py-4 flex justify-between items-center">
-        <h2 className="text-xl font-semibold text-slate-800">
-          Workflow Management
-        </h2>
-        <Button
-          onClick={() => setShowCreateModal(true)}
-          icon={<Plus size={16} />}
-        >
+        <h2 className="text-xl font-semibold text-slate-800">Workflow Management</h2>
+        <Button onClick={() => setShowCreateModal(true)} icon={<Plus size={16} />}>
           Create New
         </Button>
       </header>
@@ -190,9 +171,7 @@ function WorkflowsPage() {
               <div className="text-center py-12 text-slate-500">
                 <Layers size={48} className="mx-auto mb-4 text-slate-300" />
                 <p className="text-lg font-medium">No workflows yet</p>
-                <p className="text-sm">
-                  Create your first workflow to get started
-                </p>
+                <p className="text-sm">Create your first workflow to get started</p>
               </div>
             ) : (
               <>
@@ -203,10 +182,7 @@ function WorkflowsPage() {
                     const getStatusBadge = () => {
                       if (!runStatus?.status) return null;
 
-                      const statusConfig: Record<
-                        string,
-                        { color: string; label: string }
-                      > = {
+                      const statusConfig: Record<string, { color: string; label: string }> = {
                         completed: {
                           color: "bg-green-100 text-green-700 border-green-200",
                           label: "Completed",
@@ -220,8 +196,7 @@ function WorkflowsPage() {
                           label: "Failed",
                         },
                         pending: {
-                          color:
-                            "bg-yellow-100 text-yellow-700 border-yellow-200",
+                          color: "bg-yellow-100 text-yellow-700 border-yellow-200",
                           label: "Pending",
                         },
                       };
@@ -259,30 +234,18 @@ function WorkflowsPage() {
                             <Layers size={20} />
                           </div>
                           <div className="flex gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleEditWorkflow(workflow)}
-                            >
+                            <Button variant="ghost" size="sm" onClick={() => handleEditWorkflow(workflow)}>
                               <Edit size={18} />
                             </Button>
-                            <Button
-                              variant="danger"
-                              size="sm"
-                              onClick={() => handleDeleteWorkflow(workflow.id)}
-                            >
+                            <Button variant="danger" size="sm" onClick={() => handleDeleteWorkflow(workflow.id)}>
                               <Trash2 size={18} />
                             </Button>
                           </div>
                         </div>
                         <div className="mb-2">{getStatusBadge()}</div>
-                        <h3 className="font-semibold text-lg mb-1">
-                          {workflow.name}
-                        </h3>
+                        <h3 className="font-semibold text-lg mb-1">{workflow.name}</h3>
                         {workflow.description && (
-                          <p className="text-sm text-slate-500 line-clamp-2 mb-4">
-                            {workflow.description}
-                          </p>
+                          <p className="text-sm text-slate-500 line-clamp-2 mb-4">{workflow.description}</p>
                         )}
                         <div className="mt-auto pt-4 space-y-2">
                           <Button
@@ -321,13 +284,9 @@ function WorkflowsPage() {
                               await api.runWorkflow(workflow.id, jobId);
                             }}
                             className="w-full"
-                            disabled={
-                              runStatus?.status === "running" ||
-                              runStatus?.status === "pending"
-                            }
+                            disabled={runStatus?.status === "running" || runStatus?.status === "pending"}
                           >
-                            {runStatus?.status === "pending" ||
-                            runStatus?.status === "running"
+                            {runStatus?.status === "pending" || runStatus?.status === "running"
                               ? "RUNNING"
                               : "Run Workflow"}
                           </Button>
@@ -343,32 +302,22 @@ function WorkflowsPage() {
       </main>
 
       {/* Create Modal */}
-      <Modal
-        isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        title="Create New Workflow"
-      >
+      <Modal isOpen={showCreateModal} onClose={() => setShowCreateModal(false)} title="Create New Workflow">
         <form onSubmit={handleCreateWorkflow} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              Workflow Name *
-            </label>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Workflow Name *</label>
             <input
               type="text"
               required
               value={workflowForm.name}
-              onChange={(e) =>
-                setWorkflowForm({ ...workflowForm, name: e.target.value })
-              }
+              onChange={(e) => setWorkflowForm({ ...workflowForm, name: e.target.value })}
               className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
               placeholder="e.g., Content Processor"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              Description
-            </label>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Description</label>
             <textarea
               value={workflowForm.description}
               onChange={(e) =>
@@ -383,22 +332,13 @@ function WorkflowsPage() {
           </div>
 
           <div className="flex gap-3 pt-4">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setShowCreateModal(false)}
-              className="flex-1"
-            >
+            <Button type="button" variant="secondary" onClick={() => setShowCreateModal(false)} className="flex-1">
               Cancel
             </Button>
             <Button
               type="submit"
               isLoading={creating}
-              icon={
-                creating ? (
-                  <Loader2 size={16} className="animate-spin" />
-                ) : undefined
-              }
+              icon={creating ? <Loader2 size={16} className="animate-spin" /> : undefined}
               className="flex-1"
             >
               {creating ? "Creating..." : "Create Workflow"}
@@ -422,25 +362,19 @@ function WorkflowsPage() {
       >
         <form onSubmit={handleUpdateWorkflow} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              Workflow Name *
-            </label>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Workflow Name *</label>
             <input
               type="text"
               required
               value={workflowForm.name}
-              onChange={(e) =>
-                setWorkflowForm({ ...workflowForm, name: e.target.value })
-              }
+              onChange={(e) => setWorkflowForm({ ...workflowForm, name: e.target.value })}
               className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
               placeholder="e.g., Content Processor"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              Description
-            </label>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Description</label>
             <textarea
               value={workflowForm.description}
               onChange={(e) =>
@@ -473,11 +407,7 @@ function WorkflowsPage() {
             <Button
               type="submit"
               isLoading={updating}
-              icon={
-                updating ? (
-                  <Loader2 size={16} className="animate-spin" />
-                ) : undefined
-              }
+              icon={updating ? <Loader2 size={16} className="animate-spin" /> : undefined}
               className="flex-1"
             >
               {updating ? "Updating..." : "Update Workflow"}

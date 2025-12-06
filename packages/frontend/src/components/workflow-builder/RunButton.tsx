@@ -18,11 +18,7 @@ export function RunButton({ workflowId, currentRun, workflowStatus, handleRun }:
       title={isRunning ? "Workflow Running..." : "Run Workflow"}
       disabled={!workflowId || isRunning}
     >
-      {isRunning ? (
-        <Loader2 size={24} className="animate-spin" />
-      ) : (
-        <Play size={24} className="fill-current" />
-      )}
+      {isRunning ? <Loader2 size={24} className="animate-spin" /> : <Play size={24} className="fill-current" />}
     </button>
   );
 }

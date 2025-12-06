@@ -1,4 +1,4 @@
-import { Trash2 } from 'lucide-react';
+import { Trash2 } from "lucide-react";
 
 interface ContextMenuProps {
   id: string;
@@ -10,15 +10,7 @@ interface ContextMenuProps {
   onNodeDelete: (nodeId: string) => void;
 }
 
-export default function ContextMenu({
-  id,
-  top,
-  left,
-  right,
-  bottom,
-  onNodeDelete,
-  ...props
-}: ContextMenuProps) {
+export default function ContextMenu({ id, top, left, right, bottom, onNodeDelete, ...props }: ContextMenuProps) {
   return (
     <div
       style={{ top, left, right, bottom }}
