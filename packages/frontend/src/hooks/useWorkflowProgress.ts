@@ -54,8 +54,8 @@ export function useWorkflowProgress(
                 logMap.set(workflowId, latestRun);
 
                 // Track job ID to workflow ID mapping for real-time updates
-                if (latestRun.id) {
-                  jobMap.set(latestRun.id, workflowId);
+                if (latestRun.job_id) {
+                  jobMap.set(latestRun.job_id, workflowId);
                 }
 
                 // Call callback with initial status
@@ -145,6 +145,8 @@ export function useWorkflowProgress(
     eventSource.onmessage = (event) => {
       try {
         const message = JSON.parse(event.data);
+        console.log("Raw EventSource message:", JSON.stringify(message, null, 2));
+        
         const { jobId, progress: progressWrapper } = message as {
           jobId: string;
           progress: {
@@ -153,25 +155,39 @@ export function useWorkflowProgress(
           };
         };
         const workflowProgress = progressWrapper.data;
+        console.log("Unwrapped progress data:", workflowProgress);
+        console.log("Status from backend:", workflowProgress.status);
+        
         const workflowId = jobToWorkflowMapRef.current.get(jobId);
 
         if (!workflowId || !workflowIds.includes(workflowId)) {
           // This job doesn't belong to any of our tracked workflows
+          console.log("Job doesn't belong to tracked workflows:", jobId);
           return;
         }
 
         if (onProgressReceivedRef.current) {
           // Call callback with workflow progress data
-          onProgressReceivedRef.current(workflowId, {
+          // Note: Backend sends status at top level, we need to wrap it in runStatus
+          // If workflow status is undefined but currentStep exists, infer workflow is running
+          // (step-level updates mean workflow is still executing)
+          const workflowStatus =
+            workflowProgress.status ||
+            (workflowProgress.currentStep ? "running" : undefined);
+
+          const mappedProgress = {
             workflowId: workflowProgress.workflowId,
             runStatus: {
-              status: workflowProgress.status,
-              run_id: "",
-              job_id: "",
+              status: workflowStatus,
+              run_id: "", // Not provided in real-time updates
+              job_id: jobId,
             },
             currentStep: workflowProgress.currentStep,
             error: workflowProgress.error,
-          });
+          };
+          console.log("EventSource mapped progress:", workflowId, mappedProgress);
+          console.log("Mapped status:", mappedProgress.runStatus?.status);
+          onProgressReceivedRef.current(workflowId, mappedProgress);
         }
       } catch (err) {
         console.error("Failed to parse progress event:", err);

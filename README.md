@@ -184,8 +184,26 @@ curl http://localhost:80/health
 **Server-Sent Events (SSE) Pattern:**
 
 - Backend: `workflowQueue.on("job progress")` → streams updates via EventSource
-- Frontend: `useWorkflowProgress` hook for single workflow (builder page)
-- Frontend: `useWorkflowsProgress` hook for multiple workflows (dashboard)
+- Frontend: `useWorkflowProgress` hook for tracking multiple workflows with initial fetch + real-time updates
+- Used in: workflow-builder (single workflow), dashboard/workflows (multiple workflows)
+
+**WorkflowProgress Type Structure:**
+
+```typescript
+interface WorkflowProgress {
+  workflowId: string;
+  runStatus: WorkflowRun;      // Contains run_id, job_id, status
+  currentStep?: WorkflowStepProgress; // Optional - only when step is executing
+  error?: string;
+}
+```
+
+**Initial Fetch Pattern:**
+
+The hook fetches latest run status for all tracked workflows on mount:
+- If run has step_logs: sends progress for each step with currentStep data
+- If run has NO step_logs yet: sends single progress with just runStatus (no currentStep)
+- This ensures dashboard shows workflow status even for queued/pending workflows
 
 **Critical Pattern - useRef for Stable EventSource:**
 

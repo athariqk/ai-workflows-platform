@@ -73,6 +73,25 @@ workflowQueue.on("job progress", (jobId, progress) => {
 });
 ```
 
+**useWorkflowProgress Pattern:**
+
+```typescript
+// Track one or more workflows with initial fetch + real-time updates
+const { registerJob } = useWorkflowProgress(
+  [workflowId1, workflowId2],
+  (workflowId, progress: WorkflowProgress) => {
+    // progress.runStatus - contains run_id, job_id, status
+    // progress.currentStep - optional, only when step executing
+    console.log(progress.runStatus.status); // 'idle', 'running', 'completed', etc.
+  }
+);
+
+// After starting workflow, register job for real-time tracking
+const jobId = crypto.randomUUID();
+await api.runWorkflow(workflowId, jobId);
+registerJob(jobId, workflowId);
+```
+
 ## Production Deployment
 
 ### Initial Setup
@@ -244,6 +263,13 @@ npm run dev:be
 
 - EventSource listeners not cleaned up
 - Ensure named handler + `removeListener()` on disconnect
+
+**"Workflow statuses not showing on dashboard":**
+
+- Check useWorkflowProgress initial fetch logic
+- Verify callback receives progress.runStatus with status field
+- For workflows without step_logs: progress.currentStep will be undefined
+- Hook should send run status even when no steps executed yet
 
 **"Database connection failed":**
 

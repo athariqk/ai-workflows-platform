@@ -45,12 +45,22 @@ function WorkflowsPage() {
   const { registerJob } = useWorkflowProgress(
     workflows.map((w) => w.id),
     (workflowId, progress) => {
+      console.log("Dashboard received progress update:", workflowId, progress);
+      console.log("Status value:", progress.runStatus?.status);
+      
       setWorkflowStatuses((prev) => {
-        const updated = new Map(prev);
-        updated.set(workflowId, {
+        const statusUpdate = {
           status: progress.runStatus?.status,
           error: progress.error,
-        });
+        };
+        console.log("Status for this workflow:", statusUpdate);
+        
+        const updated = new Map(prev);
+        updated.set(workflowId, statusUpdate);
+        
+        console.log("Updated statuses map size:", updated.size);
+        console.log("Map contents:", Array.from(updated.entries()));
+        
         return updated;
       });
     }
@@ -178,9 +188,13 @@ function WorkflowsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                   {workflows.map((workflow) => {
                     const runStatus = workflowStatuses.get(workflow.id);
+                    console.log(`Rendering workflow ${workflow.id}, status:`, runStatus);
 
                     const getStatusBadge = () => {
-                      if (!runStatus?.status) return null;
+                      if (!runStatus?.status) {
+                        console.log(`No status badge for ${workflow.id}`);
+                        return null;
+                      }
 
                       const statusConfig: Record<string, { color: string; label: string }> = {
                         completed: {

@@ -116,6 +116,38 @@ useEffect(() => {
 
 **Why useRef?** Callbacks in dependencies → effect re-runs → EventSource reopens → connection spam. Refs hold latest values without triggering re-runs.
 
+**Initial Fetch Pattern** (useWorkflowProgress):
+
+```typescript
+// Fetches latest run status for all workflows on mount
+if (latestRun.step_log.length > 0) {
+  // Send progress for each step with currentStep data
+  for (const step of latestRun.step_log) {
+    const progress: WorkflowProgress = {
+      workflowId,
+      runStatus: { run_id: latestRun.id, job_id: latestRun.job_id, status: latestRun.status },
+      currentStep: { nodeId: step.node_id, name: step.name, status: step.status, ... },
+      error: latestRun.error
+    };
+    onProgressReceivedRef.current(workflowId, progress);
+  }
+} else {
+  // No steps yet - send run status only (critical fix: Dec 2025)
+  const progress: WorkflowProgress = {
+    workflowId,
+    runStatus: { run_id: latestRun.id, job_id: latestRun.job_id, status: latestRun.status },
+    currentStep: undefined,
+    error: latestRun.error
+  };
+  onProgressReceivedRef.current(workflowId, progress);
+}
+```
+
+**Key Fixes (Dec 2025):**
+1. Workflows without step_logs now explicitly send run status (empty array loop doesn't run), ensuring dashboard displays status for queued/pending workflows
+2. Initial fetch now registers `job_id` (from bee-queue) instead of `run_id` (database ID) so EventSource messages are recognized after page navigation
+3. Workflow status inference: when backend sends step-level updates without workflow status, frontend infers workflow is "running" if any `currentStep` exists
+
 ### Node Config Pass-Through Pattern
 
 **Database → ReactFlow** (single source of truth):
@@ -217,8 +249,7 @@ See `packages/frontend/src/routes/workflow-builder/`:
 - `useWorkflowNodes`: Node CRUD + ReactFlow state sync
 - `useWorkflowEdges`: Edge CRUD + cascade delete handling
 - `useReactFlowHandlers`: Drag-and-drop, canvas interactions
-- `useWorkflowProgress`: Real-time SSE progress updates (single workflow)
-- `useWorkflowsProgress`: Multi-workflow progress tracking (dashboard)
+- `useWorkflowProgress`: Real-time SSE progress tracking for one or more workflows (initial fetch + EventSource)
 
 **Node Components** (`components/nodes/`):
 
@@ -269,6 +300,9 @@ This project uses `prisma db push` for schema changes (no migrations folder). Fo
 8. **EventSource Reconnections**: NEVER put callbacks in `useEffect` deps - use `useRef` pattern
 9. **Memory Leaks**: Always clean up EventSource listeners with named handlers + `removeListener()`
 10. **DATABASE_URL**: Don't quote the value in `.env` file - use: `DATABASE_URL=postgresql://...` (no quotes)
+11. **Workflow Progress Without Steps**: useWorkflowProgress must send progress even when step_log is empty - critical for dashboard status display of queued workflows
+12. **Job ID vs Run ID**: Backend sends `job_id` (bee-queue) in EventSource messages. Initial fetch must register `latestRun.job_id` NOT `latestRun.id` in jobToWorkflowMap
+13. **Progress Status Inference**: Backend sends two message types - workflow-level (with status field) and step-level (without status field). Frontend infers workflow is "running" when step updates arrive
 
 ## Deployment
 
